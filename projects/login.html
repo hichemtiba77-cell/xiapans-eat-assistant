@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>登录 · 小洛小洛</title>
+  <link rel="icon" href="image/avatar.jpg" />
+
+  <!-- 和其他页面相同的 CDN 依赖：字体 / jQuery / 图标 / Tailwind -->
+  
+
+
+  
+
+  <link rel="stylesheet" href="styles/tailwind.css" />
+</head>
+
+<body class="bg-background text-on-surface font-sans min-h-screen flex flex-col">
+
+  <!-- 顶部：极简页头（登录页不放导航） -->
+  <header class="h-16 flex items-center justify-center">
+    <a href="index.html" class="flex items-center gap-2">
+      <span class="w-8 h-8 rounded-full border-[2.5px] border-on-surface/60 overflow-hidden block"><img src="image/avatar.jpg" class="w-full h-full object-cover" alt="小洛头像" draggable="false"/></span>
+      <span class="font-display text-2xl text-primary tracking-wide">小洛小洛</span>
+    </a>
+  </header>
+
+  <!-- 中间：登录/注册卡片 -->
+  <main class="flex-1 flex items-start sm:items-center justify-center px-4 pb-16">
+    <section class="w-full max-w-md bg-surface rounded-2xl shadow-float p-7 sm:p-8">
+
+      <!-- 团子打招呼 -->
+      <div class="flex flex-col items-center gap-2 mb-6">
+        <img src="image/avatar.jpg" class="w-16 h-16 rounded-full object-cover pet-bounce border-2 border-on-surface/30" alt="小洛头像" draggable="false"/>
+        <h1 id="form-title" class="font-display text-2xl text-on-surface tracking-wide">欢迎回来～</h1>
+        <p id="form-subtitle" class="text-sm text-on-surface-variant">登录后继续陪团子好好吃饭吧</p>
+      </div>
+
+      <!-- 配置提示：还没填 Supabase 信息时显示（js/app.js 第 1 部分） -->
+      <div id="config-warn" class="hidden mb-4 rounded-xl bg-warning/10 border border-warning/30 text-warning px-4 py-3 text-xs leading-relaxed">
+        <strong class="font-semibold">还没连接数据库。</strong><br/>
+        请打开 <code class="bg-warning/15 rounded px-1">js/app.js</code> 第 1 部分，
+        填入 Supabase 的 Project URL 和 anon key（详细步骤见项目里的「Supabase配置指引.md」）。
+      </div>
+
+      <!-- 登录 / 注册 切换标签 -->
+      <div class="grid grid-cols-2 gap-1 bg-surface-container rounded-full p-1 mb-5">
+        <button id="tab-login" type="button"
+                class="py-2 rounded-full text-sm font-semibold bg-surface text-primary shadow-card transition-all">登录</button>
+        <button id="tab-register" type="button"
+                class="py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-on-surface transition-all">注册</button>
+      </div>
+
+      <!-- 表单 -->
+      <form id="auth-form" class="flex flex-col gap-3.5" novalidate>
+        <div>
+          <label for="nickname" class="block text-xs font-medium text-on-surface-variant mb-1.5">昵称</label>
+          <input id="nickname" type="text" maxlength="20" placeholder="给自己起个可爱的昵称吧" autocomplete="username"
+                 class="w-full bg-surface-container border-none rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all" />
+        </div>
+        <div>
+          <label for="password" class="block text-xs font-medium text-on-surface-variant mb-1.5">密码</label>
+          <input id="password" type="password" maxlength="72" placeholder="至少 6 位" autocomplete="current-password"
+                 class="w-full bg-surface-container border-none rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all" />
+        </div>
+        <!-- 只有注册时才显示「确认密码」 -->
+        <div id="confirm-row" class="hidden">
+          <label for="confirm" class="block text-xs font-medium text-on-surface-variant mb-1.5">确认密码</label>
+          <input id="confirm" type="password" maxlength="72" placeholder="再输入一遍密码" autocomplete="new-password"
+                 class="w-full bg-surface-container border-none rounded-xl px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all" />
+        </div>
+
+        <!-- 错误 / 提示信息显示在这里 -->
+        <p id="form-msg" class="hidden text-xs leading-relaxed rounded-lg px-3 py-2"></p>
+
+        <button id="btn-submit" type="submit"
+                class="mt-1 w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary rounded-full py-3.5 text-sm font-semibold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+          <i data-lucide="log-in" class="w-4 h-4"></i><span id="btn-submit-text">登录</span>
+        </button>
+      </form>
+
+      <p class="text-[11px] text-on-surface-variant/70 mt-5 text-center leading-relaxed">
+        密码在云端加密保存，谁也看不到原文。<br/>
+        昵称就是你的登录名，注册后全服唯一哦。
+      </p>
+    </section>
+  </main>
+
+  <!-- Supabase JS SDK（本地文件，无需联网下载）+ 共享逻辑 -->
+
+
+
+  <style>
+    /* 团子轻轻上下浮动 */
+    @keyframes pet-bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    .pet-bounce { animation: pet-bounce 2.6s ease-in-out infinite; }
+  </style>
+
+    <script src="js/vendor/jquery-3.7.1.min.js"></script>
+  <script src="js/vendor/lucide-1.11.0.min.js"></script>
+  <script src="js/vendor/supabase.js"></script>
+  <script src="js/app.js?v=13"></script>
+<script>
+    $(function () {
+      // ========== 元素 ==========
+      var $tabLogin = $('#tab-login');
+      var $tabRegister = $('#tab-register');
+      var $confirmRow = $('#confirm-row');
+      var $title = $('#form-title');
+      var $subtitle = $('#form-subtitle');
+      var $btnText = $('#btn-submit-text');
+      var $btnIcon = $('#btn-submit i');
+      var $msg = $('#form-msg');
+      var $btn = $('#btn-submit');
+      var mode = 'login'; // 当前是登录还是注册
+
+      // ========== 配置检查：没填 Supabase 就显示提示条 ==========
+      if (!window.FanFan || !FanFan.isConfigured || !window.supabase) {
+        $('#config-warn').removeClass('hidden');
+      }
+
+      // ========== 切换 登录 / 注册 ==========
+      function setMode(m) {
+        mode = m;
+        if (m === 'login') {
+          $tabLogin.addClass('bg-surface text-primary shadow-card font-semibold').removeClass('text-on-surface-variant');
+          $tabRegister.removeClass('bg-surface text-primary shadow-card font-semibold').addClass('text-on-surface-variant');
+          $confirmRow.addClass('hidden');
+          $title.text('欢迎回来～');
+          $subtitle.text('登录后继续陪团子好好吃饭吧');
+          $btnText.text('登录');
+          $btnIcon.attr('data-lucide', 'log-in');
+        } else {
+          $tabRegister.addClass('bg-surface text-primary shadow-card font-semibold').removeClass('text-on-surface-variant');
+          $tabLogin.removeClass('bg-surface text-primary shadow-card font-semibold').addClass('text-on-surface-variant');
+          $confirmRow.removeClass('hidden');
+          $title.text('领养一只团子吧');
+          $subtitle.text('起个昵称，从第一顿饭开始陪它长大');
+          $btnText.text('注册并领养');
+          $btnIcon.attr('data-lucide', 'sparkles');
+        }
+        hideMsg();
+        if (window.lucide) lucide.createIcons();
+      }
+      $tabLogin.on('click', function () { setMode('login'); });
+      $tabRegister.on('click', function () { setMode('register'); });
+
+      // ========== 提示信息 ==========
+      function showMsg(text, isError) {
+        $msg.text(text).removeClass('hidden')
+            .removeClass('text-error bg-error/10 text-success bg-success/10')
+            .addClass(isError ? 'text-error bg-error/10' : 'text-success bg-success/10');
+      }
+      function hideMsg() { $msg.addClass('hidden'); }
+
+      // ========== 提交 ==========
+      $('#auth-form').on('submit', async function (e) {
+        e.preventDefault(); // 阻止表单刷新页面
+        var nickname = $.trim($('#nickname').val());
+        var password = $('#password').val();
+
+        if (!nickname) { showMsg('先给自己起个昵称吧～', true); return; }
+        if (mode === 'register') {
+          if (password.length < 6) { showMsg('密码至少要 6 位哦', true); return; }
+          if (password !== $('#confirm').val()) { showMsg('两次输入的密码不一样，再检查一下～', true); return; }
+        }
+
+        $btn.prop('disabled', true);
+        $btnText.text(mode === 'login' ? '登录中…' : '注册中…');
+        hideMsg();
+
+        try {
+          if (mode === 'login') {
+            await FanFan.login(nickname, password);
+          } else {
+            await FanFan.register(nickname, password);
+          }
+          // 成功 -> 进入首页
+          location.href = 'home.html';
+        } catch (err) {
+          showMsg(err.message || '出了点小问题，再试一次', true);
+          $btn.prop('disabled', false);
+          $btnText.text(mode === 'login' ? '登录' : '注册并领养');
+          if (window.lucide) lucide.createIcons();
+        }
+      });
+    });
+
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>

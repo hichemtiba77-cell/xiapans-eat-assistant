@@ -1,0 +1,12 @@
+/js/vendor/*
+  Cache-Control: public, max-age=604800
+/styles/*
+  Cache-Control: public, max-age=604800
+/image/*
+  Cache-Control: public, max-age=604800
+/background/*
+  Cache-Control: public, max-age=604800
+/js/app.js
+  Cache-Control: public, max-age=60, must-revalidate
+/sw.js
+  Cache-Control: no-cache

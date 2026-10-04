@@ -1,0 +1,37 @@
+@import 'tailwindcss';
+@source '../*.html';
+@source '../js/**/*.js';
+
+@theme {
+  --color-primary: #6E9B77;
+  --color-primary-container: #DCE9DA;
+  --color-on-primary: #FFFFFF;
+  --color-accent: #E5964E;
+  --color-accent-container: #F8E6D0;
+  --color-sakura: #F2BFB8;
+  --color-background: #F7F2E6;
+  --color-floor: #D9E9F3;
+  --color-surface-container-lowest: #FFFFFF;
+  --color-surface: #FFFDF8;
+  --color-surface-container: #F4ECDC;
+  --color-surface-container-high: #EFE4D1;
+  --color-surface-container-highest: #E8DAC3;
+  --color-on-surface: #4A4038;
+  --color-on-surface-variant: #8C8070;
+  --color-success: #7BAE7F;
+  --color-error: #DE7668;
+  --color-warning: #E5A35B;
+  --color-outline: #4A4038;
+  --color-outline-variant: #E0D6C2;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.375rem;
+  --radius-2xl: 1.75rem;
+  --radius-full: 9999px;
+  --shadow-card: 0 3px 12px rgba(122, 98, 70, 0.10);
+  --shadow-float: 0 14px 30px rgba(122, 98, 70, 0.15);
+  --shadow-dialog: 0 26px 52px rgba(122, 98, 70, 0.20);
+  --font-sans: 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+  --font-display: 'ZCOOL KuaiLe', 'Noto Sans SC', system-ui, sans-serif;
+}

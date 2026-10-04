@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>小洛小洛</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #F7F2E6; }
+    /* 启动画面：网址加载出来前显示 */
+    #splash {
+      position: fixed; inset: 0; z-index: 9;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; color: #8C8070; font-size: 14px;
+      font-family: "Noto Sans SC", system-ui, sans-serif;
+      transition: opacity .5s;
+    }
+  </style>
+</head>
+<body>
+  <div id="splash">
+    <div style="font-size:34px">🍙</div>
+    <div>小洛小洛 加载中…</div>
+  </div>
+
+  <script>
+    // ★★★ 把下面单引号里的网址换成你部署后的网址（必须 https 开头）★★★
+    var APP_URL = 'https://xiaoluo-xiaoluo.pages.dev';
+
+    // 监听 5+ 引擎就绪，创建一个全屏网页窗口加载网站
+    document.addEventListener('plusready', function () {
+      var ws = plus.webview.create(APP_URL, 'main', {
+        top: '0px',
+        bottom: '0px',
+        statusbar: { background: '#F7F2E6' }
+      });
+      // 网站加载完成后撤掉启动画面
+      ws.addEventListener('loaded', function () {
+        var s = document.getElementById('splash');
+        s.style.opacity = '0';
+        setTimeout(function () { s.style.display = 'none'; }, 500);
+      });
+      plus.webview.show(ws);
+    }, false);
+  </script>
+</body>
+</html>
+
+<!-- ============================================================
+  HBuilderX 打包步骤（保姆级）：
+  1. 下载 HBuilderX（hbuilderx.dcloud.net.cn）并安装，注册 DCloud 账号
+  2. 文件 → 新建 → 项目 → 选「5+App」模板 → 名称填「小洛小洛」
+  3. 打开项目里的 index.html，全选删除，粘贴本文件全部内容
+     （记得改 APP_URL 为你的部署网址）
+  4. 双击 manifest.json：应用名称填「小洛小洛」；图标可先用默认，
+     之后想换可把头像图做成 512x512 后再配
+  5. 菜单「发行」→「原生App-云打包」→ 平台选 Android → 证书选
+     「使用公共测试证书」→ 点「打包」
+  6. 等 5~10 分钟，DCloud 后台（dev.dcloud.net.cn）给出 apk 下载链接
+  7. 下载 apk 传到手机安装（测试证书装的包首次安装可能提示未知来源，
+     允许即可）
+  ⚠️ 注意：APK 加载的是你部署的网址，所以：
+     · 必须先把网站部署好拿到网址再打包
+     · 以后网页更新，APK 会自动用新版（不用重新打包）
+============================================================ -->

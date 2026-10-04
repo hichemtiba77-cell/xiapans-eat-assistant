@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>陪伴聊天 · 小洛小洛</title>
+  <link rel="icon" href="image/avatar.jpg" />
+
+  <!-- 字体：标题用圆润展示体 ZCOOL KuaiLe，正文用 Noto Sans SC（CN 代理） -->
+  
+
+
+
+  
+
+  <!-- Supabase JS SDK（本地文件）+ 共享账号/数据库逻辑，必须先于页面脚本加载 -->
+
+
+
+  <link rel="stylesheet" href="styles/tailwind.css" />
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans min-h-screen">
+
+  <!-- @nav:start 导航组件（顶部导航，四个一级页面；子 Agent 按当前页设置激活态 aria-current="page"） -->
+  <header class="bg-surface/85 backdrop-blur sticky top-0 z-40 border-b border-outline-variant/30">
+    <div class="max-w-4xl mx-auto h-16 px-4 flex items-center justify-between">
+      <a href="home.html" class="flex items-center gap-2 shrink-0">
+        <!-- 手绘饭团小精灵 Logo -->
+        <span class="w-8 h-8 rounded-full border-2 border-on-surface/50 overflow-hidden block shrink-0"><img src="image/avatar.jpg" class="w-full h-full object-cover" alt="小洛头像" draggable="false"/></span>
+        <span class="hidden sm:inline font-display text-2xl text-primary tracking-wide">小洛小洛</span>
+      </a>
+      <nav class="hidden sm:flex items-center gap-1">
+        <a href="home.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="home" class="w-4 h-4"></i>首页
+        </a>
+        <a href="stats.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>成长
+        </a>
+        <a href="diary.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="book-open" class="w-4 h-4"></i>日记
+        </a>
+        <a href="chat.html" aria-current="page" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-primary bg-primary-container/60 transition-colors">
+          <i data-lucide="message-circle" class="w-4 h-4"></i>陪伴
+        </a>
+      </nav>
+      <!-- 当前登录用户的昵称 + 退出按钮（js/app.js 自动填充） -->
+      <div id="user-area" class="flex items-center gap-1 shrink-0"></div>
+    </div>
+  </header>
+  <!-- @nav:end 导航组件 -->
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-4 py-6">
+
+    <!-- 聊天大卡片：承载整个对话，高度约一屏 -->
+    <section id="chat-card" class="bg-surface rounded-2xl shadow-card flex flex-col overflow-hidden"
+             style="height: calc(100vh - 7.5rem); min-height: 560px;">
+
+      <!-- 1) 顶部栏：团子头像 + 名字 + 在线状态 -->
+      <div id="chat-header" class="flex items-center gap-3 px-5 py-3.5 border-b border-outline-variant/20 shrink-0">
+        <!-- 手绘饭团小精灵头像（内嵌 SVG，幼年形态） -->
+        <div class="w-11 h-11 rounded-full bg-primary-container/60 flex items-center justify-center shrink-0"><img src="image/avatar.jpg" class="w-full h-full object-cover" alt="小洛头像" draggable="false"/></div>
+        <div class="flex flex-col gap-0.5 min-w-0">
+          <div class="flex items-center gap-2">
+            <span id="chat-pet-name" class="font-display text-xl text-on-surface leading-none">小小洛</span>
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[11px] font-medium bg-accent-container text-accent">
+              <i data-lucide="sparkles" class="w-3 h-3"></i><span id="chat-stage">小小洛</span>
+            </span>
+          </div>
+          <span class="text-xs text-on-surface-variant inline-flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-success inline-block"></span>
+            一直陪着<span id="owner-nickname">你</span>
+          </span>
+        </div>
+        <div class="ml-auto flex items-center gap-1">
+          <button id="btn-chat-more" type="button"
+                  class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"
+                  aria-label="更多">
+            <i data-lucide="ellipsis" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2) 消息区：气泡流 -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4 bg-surface-container-lowest/40">
+
+        <!-- 消息-宠物：正在输入（流式回复占位，三点跳动，发消息时才显示） -->
+        <div id="typing-indicator" class="flex items-end gap-2.5 max-w-[80%]" style="display:none">
+          <div class="w-8 h-8 rounded-full bg-primary-container/60 flex items-center justify-center shrink-0 overflow-hidden"><img src="image/avatar.jpg" class="rounded-full w-full h-full object-cover" alt="小洛头像" draggable="false"/></div>
+          <div class="bg-surface-container rounded-2xl rounded-bl-md px-4 py-3 shadow-card flex items-center gap-1.5">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 3) 底部输入区 -->
+      <div id="chat-input-area" class="shrink-0 px-5 pt-3 pb-4 border-t border-outline-variant/20 bg-surface">
+
+        <!-- 快捷问题胶囊 -->
+        <div id="quick-questions" class="flex flex-wrap gap-2 mb-3">
+          <button type="button" data-quick="我今天吃得好吗？"
+                  class="quick-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-container/70 text-accent text-xs font-medium hover:bg-accent-container active:scale-[0.97] transition-all">
+            <i data-lucide="salad" class="w-3.5 h-3.5"></i>我今天吃得好吗？
+          </button>
+          <button type="button" data-quick="讲句话鼓励我"
+                  class="quick-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-container/70 text-primary text-xs font-medium hover:bg-primary-container active:scale-[0.97] transition-all">
+            <i data-lucide="heart" class="w-3.5 h-3.5"></i>讲句话鼓励我
+          </button>
+          <button type="button" data-quick="晚饭吃什么好？"
+                  class="quick-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-medium hover:bg-surface-container-highest active:scale-[0.97] transition-all">
+            <i data-lucide="utensils" class="w-3.5 h-3.5"></i>晚饭吃什么好？
+          </button>
+        </div>
+
+        <!-- 输入框 + 发送按钮 -->
+        <div class="flex items-center gap-2">
+          <input id="chat-input" type="text" maxlength="100"
+                 placeholder="和它说点什么…"
+                 class="flex-1 bg-surface-container border-none rounded-full px-5 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" />
+          <button id="btn-send" type="button"
+                  class="w-11 h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0 hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="发送" disabled>
+            <i data-lucide="send-horizontal" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <p class="text-[11px] text-on-surface-variant/70 mt-2 text-center">回复由 AI 生成，它会记得你最近吃了什么～</p>
+      </div>
+
+    </section>
+
+  </main>
+  <!-- @main-content:end -->
+
+    <script src="js/vendor/jquery-3.7.1.min.js"></script>
+  <script src="js/vendor/lucide-1.11.0.min.js"></script>
+  <script src="js/vendor/supabase.js"></script>
+  <script src="js/app.js?v=13"></script>
+<script>
+    $(async function () {
+      // ========== 门卫：没登录会被送去 login.html ==========
+      const user = await FanFan.requireLogin();
+      if (!user) return;
+      FanFan.injectNavUser(user);
+
+      // 顶栏：主人昵称 + 小洛名字与阶段
+      const nickname = (user.user_metadata && user.user_metadata.nickname) || '你';
+      $('#owner-nickname').text(nickname);
+      const myMeals = (user.user_metadata && user.user_metadata.total_meals) || 0;
+      const myStage = FanFan.STAGES[FanFan.stageForMeals(myMeals)];
+      $('#chat-pet-name').text(myStage.name);
+      $('#chat-stage').text(myStage.name);
+
+      const $messages = $('#chat-messages');
+      const $input = $('#chat-input');
+      const $send = $('#btn-send');
+      const $typing = $('#typing-indicator');
+      $typing.hide();
+
+      let sending = false;  // 防止连发
+      let aiHistory = [];   // 给 AI 的最近对话 [{role:'user'|'assistant', content}]
+
+      function scrollToBottom() { $messages.scrollTop($messages[0].scrollHeight); }
+      function pad2(n) { return String(n).padStart(2, '0'); }
+      function nowTime(d) { d = d || new Date(); return pad2(d.getHours()) + ':' + pad2(d.getMinutes()); }
+
+      // 小洛头像（所有气泡复用）
+      const PET_FACE =
+        '<div class="w-8 h-8 rounded-full bg-primary-container/60 flex items-center justify-center shrink-0 overflow-hidden">' +
+          '<img src="image/avatar.jpg" class="rounded-full w-full h-full object-cover" alt="" draggable="false"/>' +
+        '</div>';
+
+      // 追加用户消息（右侧绿色气泡）；time 不传就用现在
+      function appendUser(text, time) {
+        const html =
+          '<div class="flex items-end justify-end gap-2.5 max-w-[80%] ml-auto">' +
+            '<div class="flex flex-col gap-1 items-end">' +
+              '<div class="bg-primary text-on-primary rounded-2xl rounded-br-md px-4 py-2.5 text-sm leading-relaxed shadow-card msg-text"></div>' +
+              '<span class="text-xs text-on-surface-variant pr-1">' + (time || nowTime()) + '</span>' +
+            '</div>' +
+          '</div>';
+        const $node = $(html);
+        $node.find('.msg-text').text(text); // text() 防止内容被当 HTML 执行
+        $typing.before($node);
+        scrollToBottom();
+      }
+
+      // 追加小洛消息气泡（内容留空），返回内容节点供流式打字更新
+      function appendPetStream() {
+        const html =
+          '<div class="flex items-end gap-2.5 max-w-[85%]">' +
+            PET_FACE +
+            '<div class="flex flex-col gap-1">' +
+              '<div class="bg-surface-container text-on-surface rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-relaxed shadow-card msg-text"></div>' +
+              '<span class="text-xs text-on-surface-variant pl-1"></span>' +
+            '</div>' +
+          '</div>';
+        const $node = $(html);
+        $typing.before($node);
+        return $node.find('.msg-text');
+      }
+
+      // 直接追加完整的小洛消息
+      function appendPet(text, time) {
+        const $c = appendPetStream();
+        $c.text(text);
+        $c.siblings('span').last().text(time || nowTime());
+        scrollToBottom();
+      }
+
+      // 没配 AI Key 时的本地兜底回复（关键词版）
+      function petReply(text) {
+        const t = text;
+        if (t.indexOf('鼓励') !== -1) return '你今天也超努力的！好好吃饭，就是最棒的事～';
+        if (t.indexOf('晚饭') !== -1 || t.indexOf('晚餐') !== -1) return '晚饭想吃热乎的吗？来碗蔬菜乌冬面怎么样，暖呼呼的～';
+        if (t.indexOf('吃') !== -1) return '嗯嗯，吃饭是头等大事！你吃了我就开心～';
+        return '嗯嗯，我在听呢～';
+      }
+
+      // ========== 加载云端聊天记录 ==========
+      try {
+        const rows = await FanFan.getChatHistory(50);
+        rows.forEach(function (r) {
+          const t = nowTime(new Date(r.created_at));
+          if (r.role === 'user') appendUser(r.content, t);
+          else appendPet(r.content, t);
+          aiHistory.push({ role: r.role === 'user' ? 'user' : 'assistant', content: r.content });
+        });
+      } catch (e) {
+        console.warn('聊天记录加载失败（还没跑 chat-setup.sql 的话会这样）:', e.message);
+      }
+      if (!aiHistory.length) appendPet('你回来啦～今天过得怎么样呀？'); // 欢迎语只展示不存库
+      scrollToBottom();
+
+      // ========== 发送消息：存库 -> AI 流式回复 -> 存库 ==========
+      async function sendMessage(raw) {
+        const text = (raw || '').trim();
+        if (!text || sending) return;
+        sending = true;
+        $send.prop('disabled', true);
+
+        appendUser(text);
+        $input.val(''); // 发送后清空输入框
+        $send.prop('disabled', true);
+        aiHistory.push({ role: 'user', content: text });
+        // 主人的话先存库（失败只打日志，不挡聊天）
+        FanFan.saveChat('user', text).catch(function (e) { console.warn('保存失败:', e.message); });
+
+        const $content = appendPetStream();
+        $typing.show();
+        scrollToBottom();
+
+        let full = '';
+        if (!FanFan.isAiConfigured) {
+          // 没配 Key：本地兜底
+          await new Promise(function (r) { setTimeout(r, 1200); });
+          full = petReply(text);
+          $content.text(full);
+        } else {
+          try {
+            const sys = await FanFan.buildPetSystemPrompt();
+            const msgs = [{ role: 'system', content: sys }].concat(aiHistory.slice(-12));
+            let started = false;
+            full = await FanFan.aiStream(msgs, function (delta) {
+              if (!started) { $typing.hide(); started = true; } // 第一个字到达就撤下"正在输入"
+              $content.text($content.text() + delta);
+              scrollToBottom();
+            });
+            if (!full) { full = '（今天有点语塞呀…再说一遍好不好？）'; $content.text(full); }
+            FanFan.saveChat('pet', full).catch(function (e) { console.warn('回复保存失败:', e.message); });
+            aiHistory.push({ role: 'assistant', content: full });
+          } catch (e) {
+            console.warn('AI 调用失败:', e);
+            $typing.hide();
+            full = '呜…网络开小差了，等下再和我说说话好不好？';
+            $content.text(full);
+          }
+        }
+        $content.siblings('span').last().text(nowTime());
+        $typing.hide();
+        scrollToBottom();
+        sending = false;
+        $send.prop('disabled', !$input.val().trim());
+      }
+
+      // 输入框：有内容才启用发送
+      $input.on('input', function () {
+        $send.prop('disabled', !$(this).val().trim() || sending);
+      });
+
+      // 回车 / 点击发送
+      $input.on('keydown', function (e) {
+        if (e.key === 'Enter' && !$send.prop('disabled')) {
+          e.preventDefault();
+          sendMessage($input.val());
+        }
+      });
+      $send.on('click', function () { sendMessage($input.val()); });
+
+      // 快捷提问胶囊：直接问 AI
+      $('#quick-questions').on('click', '.quick-chip', function () {
+        const q = $(this).data('quick');
+        const $chip = $(this);
+        $chip.addClass('ring-2 ring-primary/30');
+        setTimeout(function () { $chip.removeClass('ring-2 ring-primary/30'); }, 400);
+        $input.val(q);
+        $send.prop('disabled', false);
+        sendMessage(q);
+      });
+
+      $('#btn-chat-more').on('click', function () {
+        console.log('聊天更多菜单：清空记录 / 导出对话 / 提醒设置');
+      });
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

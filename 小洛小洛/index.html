@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>小洛小洛</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #F7F2E6; }
+    /* 启动画面：网址加载出来前显示 */
+    #splash {
+      position: fixed; inset: 0; z-index: 9;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; color: #8C8070; font-size: 14px;
+      font-family: "Noto Sans SC", system-ui, sans-serif;
+      transition: opacity .5s;
+    }
+  </style>
+</head>
+<body>
+  <div id="splash">
+    <div style="font-size:34px">🍙</div>
+    <div>小洛小洛 加载中…</div>
+  </div>
+
+  <script>
+    // 把下面单引号里的网址换成你部署后的网址（必须 https 开头）
+    var APP_URL = 'https://xiaoluo-xiaoluo.pages.dev';
+
+    // 监听 5+ 引擎就绪，创建一个全屏网页窗口加载网站
+    document.addEventListener('plusready', function () {
+      var ws = plus.webview.create(APP_URL, 'main', {
+        top: '0px',
+        bottom: '0px',
+        statusbar: { background: '#F7F2E6' }
+      });
+      // 网站加载完成后撤掉启动画面
+      ws.addEventListener('loaded', function () {
+        var s = document.getElementById('splash');
+        s.style.opacity = '0';
+        setTimeout(function () { s.style.display = 'none'; }, 500);
+      });
+      plus.webview.show(ws);
+    }, false);
+  </script>
+</body>
+</html>

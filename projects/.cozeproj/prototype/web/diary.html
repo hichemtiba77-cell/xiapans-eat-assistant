@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- 字体：标题用圆润展示体 ZCOOL KuaiLe，正文用 Noto Sans SC（CN 代理） -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色：柔和抹茶绿 === */
+      --color-primary:              #6E9B77;
+      --color-primary-container:    #DCE9DA;
+      --color-on-primary:           #FFFFFF;
+      /* 点缀色：暖琥珀（蜜豆/鲑鱼）与 樱粉（装饰） */
+      --color-accent:               #E5964E;
+      --color-accent-container:     #F8E6D0;
+      --color-sakura:               #F2BFB8;
+      /* === 背景 / 表面：暖米纸色系（surface 保持暖中性） === */
+      --color-background:                 #FAF4E8;
+      --color-surface-container-lowest:   #FFFFFF;
+      --color-surface:                    #FFFDF8;
+      --color-surface-container:          #F4ECDC;
+      --color-surface-container-high:     #EFE4D1;
+      --color-surface-container-highest:  #E8DAC3;
+      /* === 文字：暖棕（不用纯黑，更柔和） === */
+      --color-on-surface:           #4A4038;
+      --color-on-surface-variant:   #8C8070;
+      /* === 功能色 === */
+      --color-success:  #7BAE7F;
+      --color-error:    #DE7668;
+      --color-warning:  #E5A35B;
+      /* === 边框：暖米 ghost border === */
+      --color-outline:          #D9CDB6;
+      --color-outline-variant:  #E8DECB;
+      /* === 圆角：圆润可爱 === */
+      --radius-sm:   0.5rem;
+      --radius-md:   0.75rem;
+      --radius-lg:   1rem;
+      --radius-xl:   1.375rem;
+      --radius-2xl:  1.75rem;
+      --radius-full: 9999px;
+      /* === 阴影：暖调柔影 === */
+      --shadow-card:   0 3px 12px rgba(122, 98, 70, 0.10);
+      --shadow-float:  0 14px 30px rgba(122, 98, 70, 0.15);
+      --shadow-dialog: 0 26px 52px rgba(122, 98, 70, 0.20);
+      /* === 字体 === */
+      --font-sans:     "Noto Sans SC", system-ui, -apple-system, sans-serif;
+      --font-display:  "ZCOOL KuaiLe", "Noto Sans SC", system-ui, sans-serif;
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 400;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans min-h-screen">
+
+  <!-- @nav:start 导航组件（顶部导航，四个一级页面；子 Agent 按当前页设置激活态 aria-current="page"） -->
+  <header class="bg-surface/85 backdrop-blur sticky top-0 z-40 border-b border-outline-variant/30">
+    <div class="max-w-4xl mx-auto h-16 px-4 flex items-center justify-between">
+      <a href="home.html" class="flex items-center gap-2 shrink-0">
+        <!-- 手绘饭团小精灵 Logo -->
+        <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M16 4c1.2 0 2.3.6 2.9 1.6l9 15.2c1 1.7-.2 3.8-2.2 3.8H6.3c-2 0-3.2-2.1-2.2-3.8l9-15.2A3.4 3.4 0 0 1 16 4Z" fill="#FFFFFF" stroke="#6E9B77" stroke-width="1.6" stroke-linejoin="round"/>
+          <rect x="11.5" y="19.5" width="9" height="6.3" rx="1.6" fill="#47644F"/>
+          <circle cx="12.9" cy="14.6" r="1.15" fill="#4A4038"/>
+          <circle cx="19.1" cy="14.6" r="1.15" fill="#4A4038"/>
+          <path d="M14.6 17.2q1.4 1.1 2.8 0" stroke="#C9786A" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span class="font-display text-2xl text-primary tracking-wide">饭团小窝</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="home.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="home" class="w-4 h-4"></i>首页
+        </a>
+        <a href="stats.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>成长
+        </a>
+        <a href="diary.html" aria-current="page" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-primary bg-primary-container/60 transition-colors">
+          <i data-lucide="book-open" class="w-4 h-4"></i>日记
+        </a>
+        <a href="chat.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="message-circle" class="w-4 h-4"></i>陪伴
+        </a>
+      </nav>
+    </div>
+  </header>
+  <!-- @nav:end 导航组件 -->
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-4 py-8">
+
+    <!-- 页头：标题 + 副标题 -->
+    <section id="diary-header" class="flex flex-wrap items-end justify-between gap-4">
+      <div class="flex flex-col gap-1">
+        <h1 class="font-display text-2xl text-on-surface tracking-wide">吃饭日记</h1>
+        <p class="text-sm text-on-surface-variant">每一顿好好吃饭，都陪着团子长大</p>
+      </div>
+      <!-- 本周统计小条 -->
+      <div id="week-stats" class="flex items-center gap-4 bg-surface rounded-full shadow-card px-4 py-2">
+        <span class="flex items-center gap-1.5 text-sm text-on-surface-variant">
+          <i data-lucide="calendar-heart" class="w-4 h-4 text-primary"></i>
+          本周已记录
+          <strong id="week-meal-count" class="text-sm font-semibold text-primary">8</strong>
+          餐
+        </span>
+        <span class="w-px h-4 bg-outline-variant/60" aria-hidden="true"></span>
+        <span class="flex items-center gap-1.5 text-sm text-on-surface-variant">
+          <i data-lucide="flame" class="w-4 h-4 text-accent"></i>
+          连续好好吃饭
+          <strong id="streak-days" class="text-sm font-semibold text-accent">3</strong>
+          天
+        </span>
+      </div>
+    </section>
+
+    <!-- 时间线：左侧柔和竖线 -->
+    <section id="diary-timeline" class="relative mt-8 pl-8">
+      <!-- 竖向时间线（柔和米褐，ghost 线） -->
+      <span class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-outline-variant/70 rounded-full" aria-hidden="true"></span>
+
+      <!-- ========== 分组：今天 9月3日 · 周三 ========== -->
+      <div class="timeline-group" data-date="0903">
+        <!-- 日期节点：primary 圆点 -->
+        <div class="relative flex items-center gap-3 -ml-8 mb-4">
+          <span class="z-10 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-card shrink-0">
+            <i data-lucide="sun" class="w-3.5 h-3.5 text-on-primary"></i>
+          </span>
+          <h2 class="font-display text-lg text-on-surface tracking-wide">今天 <span class="text-on-surface-variant text-sm font-sans font-normal">9月3日 · 周三</span></h2>
+        </div>
+
+        <div class="flex flex-col gap-3 mb-10">
+          <!-- 列表-今天-午餐：照烧鸡腿饭 -->
+          <article id="meal-0903-lunch" class="meal-card group bg-surface rounded-lg shadow-card p-4 flex items-center gap-4 hover:shadow-float transition-shadow">
+            <span class="w-10 h-10 rounded-full bg-accent-container flex items-center justify-center shrink-0">
+              <i data-lucide="utensils" class="w-5 h-5 text-accent"></i>
+            </span>
+            <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-accent-container/70 text-accent">午餐</span>
+                <span class="text-xs text-on-surface-variant">12:24</span>
+              </div>
+              <h3 class="text-base font-semibold text-on-surface truncate">照烧鸡腿饭</h3>
+              <p class="text-xs text-on-surface-variant">配了溏心蛋和烫西兰花，团子吃得圆滚滚的</p>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-container/70 text-primary shrink-0">
+              <i data-lucide="sprout" class="w-3.5 h-3.5"></i>+13 成长值
+            </span>
+          </article>
+
+          <!-- 列表-今天-早餐：番茄鸡蛋面 -->
+          <article id="meal-0903-breakfast" class="meal-card group bg-surface rounded-lg shadow-card p-4 flex items-center gap-4 hover:shadow-float transition-shadow">
+            <span class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+              <i data-lucide="coffee" class="w-5 h-5 text-primary"></i>
+            </span>
+            <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-container/70 text-primary">早餐</span>
+                <span class="text-xs text-on-surface-variant">08:10</span>
+              </div>
+              <h3 class="text-base font-semibold text-on-surface truncate">番茄鸡蛋面</h3>
+              <p class="text-xs text-on-surface-variant">热汤面暖暖地下肚，团子眼睛都亮了</p>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-container/70 text-primary shrink-0">
+              <i data-lucide="sprout" class="w-3.5 h-3.5"></i>+11 成长值
+            </span>
+          </article>
+        </div>
+      </div>
+
+      <!-- ========== 分组：昨天 9月2日 · 周二 ========== -->
+      <div class="timeline-group" data-date="0902">
+        <!-- 日期节点：primary 圆点 -->
+        <div class="relative flex items-center gap-3 -ml-8 mb-4">
+          <span class="z-10 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-card shrink-0">
+            <i data-lucide="cloud-sun" class="w-3.5 h-3.5 text-on-primary"></i>
+          </span>
+          <h2 class="font-display text-lg text-on-surface tracking-wide">昨天 <span class="text-on-surface-variant text-sm font-sans font-normal">9月2日 · 周二</span></h2>
+        </div>
+
+        <div class="flex flex-col gap-3 mb-6">
+          <!-- 列表-昨天-晚餐：番茄牛腩煲 -->
+          <article id="meal-0902-dinner" class="meal-card group bg-surface rounded-lg shadow-card p-4 flex items-center gap-4 hover:shadow-float transition-shadow">
+            <span class="w-10 h-10 rounded-full bg-sakura/30 flex items-center justify-center shrink-0">
+              <i data-lucide="moon" class="w-5 h-5 text-[#C9786A]"></i>
+            </span>
+            <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sakura/30 text-[#C9786A]">晚餐</span>
+                <span class="text-xs text-on-surface-variant">19:02</span>
+              </div>
+              <h3 class="text-base font-semibold text-on-surface truncate">番茄牛腩煲</h3>
+              <p class="text-xs text-on-surface-variant">炖得软烂入味，配米饭吃了两大碗</p>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-container/70 text-primary shrink-0">
+              <i data-lucide="sprout" class="w-3.5 h-3.5"></i>+14 成长值
+            </span>
+          </article>
+
+          <!-- 列表-昨天-午餐：青椒肉丝盖饭 -->
+          <article id="meal-0902-lunch" class="meal-card group bg-surface rounded-lg shadow-card p-4 flex items-center gap-4 hover:shadow-float transition-shadow">
+            <span class="w-10 h-10 rounded-full bg-accent-container flex items-center justify-center shrink-0">
+              <i data-lucide="utensils" class="w-5 h-5 text-accent"></i>
+            </span>
+            <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-accent-container/70 text-accent">午餐</span>
+                <span class="text-xs text-on-surface-variant">12:38</span>
+              </div>
+              <h3 class="text-base font-semibold text-on-surface truncate">青椒肉丝盖饭</h3>
+              <p class="text-xs text-on-surface-variant">楼下小馆子的家常味，锅气十足</p>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-container/70 text-primary shrink-0">
+              <i data-lucide="sprout" class="w-3.5 h-3.5"></i>+12 成长值
+            </span>
+          </article>
+
+          <!-- 列表-昨天-早餐：豆浆油条 -->
+          <article id="meal-0902-breakfast" class="meal-card group bg-surface rounded-lg shadow-card p-4 flex items-center gap-4 hover:shadow-float transition-shadow">
+            <span class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+              <i data-lucide="coffee" class="w-5 h-5 text-primary"></i>
+            </span>
+            <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-container/70 text-primary">早餐</span>
+                <span class="text-xs text-on-surface-variant">07:55</span>
+              </div>
+              <h3 class="text-base font-semibold text-on-surface truncate">豆浆油条</h3>
+              <p class="text-xs text-on-surface-variant">热豆浆配刚炸好的油条，经典早餐</p>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-container/70 text-primary shrink-0">
+              <i data-lucide="sprout" class="w-3.5 h-3.5"></i>+10 成长值
+            </span>
+          </article>
+        </div>
+
+        <!-- 特殊进化节点卡片（暖琥珀浅底） -->
+        <article id="milestone-evolution" class="relative -ml-8 mb-10">
+          <!-- accent 节点圆点 -->
+          <span class="absolute left-[11px] -translate-x-1/2 top-6 z-10 w-6 h-6 rounded-full bg-accent flex items-center justify-center shadow-float shrink-0">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-white"></i>
+          </span>
+          <div class="ml-8 bg-accent-container rounded-lg shadow-card p-4 flex items-start gap-3">
+            <span class="w-10 h-10 rounded-full bg-surface/70 flex items-center justify-center shrink-0">
+              <i data-lucide="sparkle" class="w-5 h-5 text-accent"></i>
+            </span>
+            <div class="flex-1 flex flex-col gap-1">
+              <h3 class="font-display text-lg text-accent tracking-wide flex items-center gap-1.5">
+                团子进化啦！
+                <i data-lucide="sparkles" class="w-4 h-4 text-accent"></i>
+              </h3>
+              <p class="text-sm text-on-surface">团子从 <span class="font-medium">『饭团蛋』</span> 进化成了 <span class="font-semibold text-accent">『幼年 · 小饭团』</span></p>
+              <p class="text-xs text-on-surface-variant">累计好好吃饭 5 餐，它破壳而出，长出了小手手</p>
+            </div>
+            <span class="text-xs text-on-surface-variant shrink-0 pt-1">9月2日 19:05</span>
+          </div>
+        </article>
+      </div>
+
+      <!-- ========== 分组：9月1日 · 周一 ========== -->
+      <div class="timeline-group" data-date="0901">
+        <!-- 日期节点：accent 圆点（更早的日子） -->
+        <div class="relative flex items-center gap-3 -ml-8 mb-4">
+          <span class="z-10 w-6 h-6 rounded-full bg-accent flex items-center justify-center shadow-card shrink-0">
+            <i data-lucide="moon-star" class="w-3.5 h-3.5 text-white"></i>
+          </span>
+          <h2 class="font-display text-lg text-on-surface tracking-wide">9月1日 <span class="text-on-surface-variant text-sm font-sans font-normal">· 周一</span></h2>
+        </div>
+
+        <div class="flex flex-col gap-3">
+          <!-- 列表-9月1日-晚餐：一碗白粥配小菜 -->
+          <article id="meal-0901-dinner" class="meal-card group bg-surface rounded-lg shadow-card p-4 flex items-center gap-4 hover:shadow-float transition-shadow">
+            <span class="w-10 h-10 rounded-full bg-sakura/30 flex items-center justify-center shrink-0">
+              <i data-lucide="moon" class="w-5 h-5 text-[#C9786A]"></i>
+            </span>
+            <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sakura/30 text-[#C9786A]">晚餐</span>
+                <span class="text-xs text-on-surface-variant">20:15</span>
+              </div>
+              <h3 class="text-base font-semibold text-on-surface truncate">一碗白粥配小菜</h3>
+              <p class="text-xs text-on-surface-variant">胃不太舒服，清淡点也很好，团子陪着慢慢喝</p>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-container/70 text-primary shrink-0">
+              <i data-lucide="sprout" class="w-3.5 h-3.5"></i>+9 成长值
+            </span>
+          </article>
+
+          <!-- 列表-9月1日-午餐：加班只啃了面包（轻松不评判，成长值偏低） -->
+          <article id="meal-0901-lunch" class="meal-card group bg-surface rounded-lg shadow-card p-4 flex items-center gap-4 hover:shadow-float transition-shadow">
+            <span class="w-10 h-10 rounded-full bg-accent-container flex items-center justify-center shrink-0">
+              <i data-lucide="sandwich" class="w-5 h-5 text-accent"></i>
+            </span>
+            <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-accent-container/70 text-accent">午餐 · 凑合一顿</span>
+                <span class="text-xs text-on-surface-variant">13:47</span>
+              </div>
+              <h3 class="text-base font-semibold text-on-surface truncate">加班只啃了面包</h3>
+              <p class="text-xs text-on-surface-variant">忙起来也没关系，吃了就很棒，团子不挑食</p>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-surface-container-high text-on-surface-variant shrink-0">
+              <i data-lucide="sprout" class="w-3.5 h-3.5"></i>+7 成长值
+            </span>
+          </article>
+
+          <!-- 列表-9月1日-早餐：小笼包 -->
+          <article id="meal-0901-breakfast" class="meal-card group bg-surface rounded-lg shadow-card p-4 flex items-center gap-4 hover:shadow-float transition-shadow">
+            <span class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center shrink-0">
+              <i data-lucide="coffee" class="w-5 h-5 text-primary"></i>
+            </span>
+            <div class="flex-1 min-w-0 flex flex-col gap-0.5">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-container/70 text-primary">早餐</span>
+                <span class="text-xs text-on-surface-variant">08:30</span>
+              </div>
+              <h3 class="text-base font-semibold text-on-surface truncate">一屉小笼包</h3>
+              <p class="text-xs text-on-surface-variant">周一早上用热乎小笼包开启，汤汁满满</p>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-primary-container/70 text-primary shrink-0">
+              <i data-lucide="sprout" class="w-3.5 h-3.5"></i>+10 成长值
+            </span>
+          </article>
+        </div>
+      </div>
+
+      <!-- 时间线底部温柔收尾 -->
+      <div class="relative -ml-8 mt-8 flex items-center gap-3">
+        <span class="z-10 w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+          <i data-lucide="heart" class="w-3.5 h-3.5 text-sakura"></i>
+        </span>
+        <p class="text-sm text-on-surface-variant">更早的故事，从你喂下第一口饭开始慢慢书写……</p>
+      </div>
+    </section>
+
+  </main>
+  <!-- @main-content:end -->
+
+  <script>
+    lucide.createIcons();
+
+    $(function () {
+      // 日记条目：纯展示，无跳转；点击/悬停仅做轻微反馈
+      // 完整交互行为（后续实现参考）：
+      // 1. 悬停时卡片 shadow-card -> shadow-float（已由 CSS hover 实现）
+      // 2. 点击条目可展开"这一餐详情"小弹层：展示饭菜名、时间、成长值、团子当时的心情留言
+      // 3. 长按或右上角更多按钮可删除该条记录（需二次确认），删除后同步扣减本周餐数统计
+      $('#diary-timeline').on('click', '.meal-card', function () {
+        const mealId = $(this).attr('id');
+        console.log('查看用餐记录详情:', mealId);
+      });
+
+      // 进化节点卡片：点击后可跳转成长页查看进化图鉴
+      // 完整交互行为（后续实现参考）：
+      // 1. 点击进化卡片跳转到 stats.html，并定位/高亮"进化图鉴"中对应的幼年阶段立绘
+      $('#milestone-evolution').on('click', function () {
+        window.location.href = 'stats.html?highlight=stage-1';
+      });
+    });
+  </script>
+</body>
+
+</html>

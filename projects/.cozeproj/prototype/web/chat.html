@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- 字体：标题用圆润展示体 ZCOOL KuaiLe，正文用 Noto Sans SC（CN 代理） -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色：柔和抹茶绿 === */
+      --color-primary:              #6E9B77;
+      --color-primary-container:    #DCE9DA;
+      --color-on-primary:           #FFFFFF;
+      /* 点缀色：暖琥珀（蜜豆/鲑鱼）与 樱粉（装饰） */
+      --color-accent:               #E5964E;
+      --color-accent-container:     #F8E6D0;
+      --color-sakura:               #F2BFB8;
+      /* === 背景 / 表面：暖米纸色系（surface 保持暖中性） === */
+      --color-background:                 #FAF4E8;
+      --color-surface-container-lowest:   #FFFFFF;
+      --color-surface:                    #FFFDF8;
+      --color-surface-container:          #F4ECDC;
+      --color-surface-container-high:     #EFE4D1;
+      --color-surface-container-highest:  #E8DAC3;
+      /* === 文字：暖棕（不用纯黑，更柔和） === */
+      --color-on-surface:           #4A4038;
+      --color-on-surface-variant:   #8C8070;
+      /* === 功能色 === */
+      --color-success:  #7BAE7F;
+      --color-error:    #DE7668;
+      --color-warning:  #E5A35B;
+      /* === 边框：暖米 ghost border === */
+      --color-outline:          #D9CDB6;
+      --color-outline-variant:  #E8DECB;
+      /* === 圆角：圆润可爱 === */
+      --radius-sm:   0.5rem;
+      --radius-md:   0.75rem;
+      --radius-lg:   1rem;
+      --radius-xl:   1.375rem;
+      --radius-2xl:  1.75rem;
+      --radius-full: 9999px;
+      /* === 阴影：暖调柔影 === */
+      --shadow-card:   0 3px 12px rgba(122, 98, 70, 0.10);
+      --shadow-float:  0 14px 30px rgba(122, 98, 70, 0.15);
+      --shadow-dialog: 0 26px 52px rgba(122, 98, 70, 0.20);
+      /* === 字体 === */
+      --font-sans:     "Noto Sans SC", system-ui, -apple-system, sans-serif;
+      --font-display:  "ZCOOL KuaiLe", "Noto Sans SC", system-ui, sans-serif;
+    }
+
+    /* === 正在输入三点跳动动画 === */
+    @keyframes typing-dot {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+      30%           { transform: translateY(-4px); opacity: 1; }
+    }
+    .typing-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 9999px;
+      background: #8C8070;
+      display: inline-block;
+      animation: typing-dot 1.2s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.30s; }
+
+    /* 消息区滚动条柔和化 */
+    #chat-messages::-webkit-scrollbar { width: 6px; }
+    #chat-messages::-webkit-scrollbar-thumb { background: #E8DECB; border-radius: 9999px; }
+    #chat-messages::-webkit-scrollbar-track { background: transparent; }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans min-h-screen">
+
+  <!-- @nav:start 导航组件（顶部导航，四个一级页面；子 Agent 按当前页设置激活态 aria-current="page"） -->
+  <header class="bg-surface/85 backdrop-blur sticky top-0 z-40 border-b border-outline-variant/30">
+    <div class="max-w-4xl mx-auto h-16 px-4 flex items-center justify-between">
+      <a href="home.html" class="flex items-center gap-2 shrink-0">
+        <!-- 手绘饭团小精灵 Logo -->
+        <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M16 4c1.2 0 2.3.6 2.9 1.6l9 15.2c1 1.7-.2 3.8-2.2 3.8H6.3c-2 0-3.2-2.1-2.2-3.8l9-15.2A3.4 3.4 0 0 1 16 4Z" fill="#FFFFFF" stroke="#6E9B77" stroke-width="1.6" stroke-linejoin="round"/>
+          <rect x="11.5" y="19.5" width="9" height="6.3" rx="1.6" fill="#47644F"/>
+          <circle cx="12.9" cy="14.6" r="1.15" fill="#4A4038"/>
+          <circle cx="19.1" cy="14.6" r="1.15" fill="#4A4038"/>
+          <path d="M14.6 17.2q1.4 1.1 2.8 0" stroke="#C9786A" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span class="font-display text-2xl text-primary tracking-wide">饭团小窝</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="home.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="home" class="w-4 h-4"></i>首页
+        </a>
+        <a href="stats.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>成长
+        </a>
+        <a href="diary.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="book-open" class="w-4 h-4"></i>日记
+        </a>
+        <a href="chat.html" aria-current="page" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-primary bg-primary-container/60 transition-colors">
+          <i data-lucide="message-circle" class="w-4 h-4"></i>陪伴
+        </a>
+      </nav>
+    </div>
+  </header>
+  <!-- @nav:end 导航组件 -->
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-4 py-6">
+
+    <!-- 聊天大卡片：承载整个对话，高度约一屏 -->
+    <section id="chat-card" class="bg-surface rounded-2xl shadow-card flex flex-col overflow-hidden"
+             style="height: calc(100vh - 7.5rem); min-height: 560px;">
+
+      <!-- 1) 顶部栏：团子头像 + 名字 + 在线状态 -->
+      <div id="chat-header" class="flex items-center gap-3 px-5 py-3.5 border-b border-outline-variant/20 shrink-0">
+        <!-- 手绘饭团小精灵头像（内嵌 SVG，幼年形态） -->
+        <div class="w-11 h-11 rounded-full bg-primary-container/60 flex items-center justify-center shrink-0">
+          <svg class="w-9 h-9" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="团子头像">
+            <path d="M16 4c1.2 0 2.3.6 2.9 1.6l9 15.2c1 1.7-.2 3.8-2.2 3.8H6.3c-2 0-3.2-2.1-2.2-3.8l9-15.2A3.4 3.4 0 0 1 16 4Z" fill="#FFFFFF" stroke="#6E9B77" stroke-width="1.6" stroke-linejoin="round"/>
+            <rect x="11.5" y="19.5" width="9" height="6.3" rx="1.6" fill="#47644F"/>
+            <circle cx="12.9" cy="14.6" r="1.15" fill="#4A4038"/>
+            <circle cx="19.1" cy="14.6" r="1.15" fill="#4A4038"/>
+            <path d="M14.6 17.2q1.4 1.1 2.8 0" stroke="#C9786A" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+            <circle cx="10.6" cy="16.4" r="1.3" fill="#F2BFB8" opacity="0.75"/>
+            <circle cx="21.4" cy="16.4" r="1.3" fill="#F2BFB8" opacity="0.75"/>
+          </svg>
+        </div>
+        <div class="flex flex-col gap-0.5 min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="font-display text-xl text-on-surface leading-none">团子</span>
+            <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[11px] font-medium bg-accent-container text-accent">
+              <i data-lucide="sparkles" class="w-3 h-3"></i>幼年小饭团
+            </span>
+          </div>
+          <span class="text-xs text-on-surface-variant inline-flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-success inline-block"></span>
+            一直陪着你
+          </span>
+        </div>
+        <div class="ml-auto flex items-center gap-1">
+          <button id="btn-chat-more" type="button"
+                  class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"
+                  aria-label="更多">
+            <i data-lucide="ellipsis" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2) 消息区：气泡流 -->
+      <div id="chat-messages" class="flex-1 overflow-y-auto px-5 py-5 flex flex-col gap-4 bg-surface-container-lowest/40">
+
+        <!-- 日期分隔 -->
+        <div class="flex items-center gap-3 my-1">
+          <span class="flex-1 h-px bg-outline-variant/40"></span>
+          <span class="text-xs text-on-surface-variant">今天 · 午前</span>
+          <span class="flex-1 h-px bg-outline-variant/40"></span>
+        </div>
+
+        <!-- 消息-宠物1：打招呼 -->
+        <div class="flex items-end gap-2.5 max-w-[80%]">
+          <div class="w-8 h-8 rounded-full bg-primary-container/60 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M16 4c1.2 0 2.3.6 2.9 1.6l9 15.2c1 1.7-.2 3.8-2.2 3.8H6.3c-2 0-3.2-2.1-2.2-3.8l9-15.2A3.4 3.4 0 0 1 16 4Z" fill="#FFFFFF" stroke="#6E9B77" stroke-width="1.6" stroke-linejoin="round"/>
+              <rect x="11.5" y="19.5" width="9" height="6.3" rx="1.6" fill="#47644F"/>
+              <circle cx="12.9" cy="14.6" r="1.15" fill="#4A4038"/>
+              <circle cx="19.1" cy="14.6" r="1.15" fill="#4A4038"/>
+              <path d="M14.6 17.2q1.4 1.1 2.8 0" stroke="#C9786A" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="bg-surface-container text-on-surface rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-relaxed shadow-card">
+              你回来啦～今天有没有好好吃饭呀？
+            </div>
+            <span class="text-xs text-on-surface-variant pl-1">11:36</span>
+          </div>
+        </div>
+
+        <!-- 消息-用户1 -->
+        <div class="flex items-end justify-end gap-2.5 max-w-[80%] ml-auto">
+          <div class="flex flex-col gap-1 items-end">
+            <div class="bg-primary text-on-primary rounded-2xl rounded-br-md px-4 py-2.5 text-sm leading-relaxed shadow-card">
+              在忙，晚点吃。
+            </div>
+            <span class="text-xs text-on-surface-variant pr-1">11:38</span>
+          </div>
+        </div>
+
+        <!-- 消息-宠物2：催饭（带小图标提示） -->
+        <div class="flex items-end gap-2.5 max-w-[85%]">
+          <div class="w-8 h-8 rounded-full bg-primary-container/60 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M16 4c1.2 0 2.3.6 2.9 1.6l9 15.2c1 1.7-.2 3.8-2.2 3.8H6.3c-2 0-3.2-2.1-2.2-3.8l9-15.2A3.4 3.4 0 0 1 16 4Z" fill="#FFFFFF" stroke="#6E9B77" stroke-width="1.6" stroke-linejoin="round"/>
+              <rect x="11.5" y="19.5" width="9" height="6.3" rx="1.6" fill="#47644F"/>
+              <circle cx="12.9" cy="14.6" r="1.15" fill="#4A4038"/>
+              <circle cx="19.1" cy="14.6" r="1.15" fill="#4A4038"/>
+              <path d="M14.6 17.2q1.4 1.1 2.8 0" stroke="#C9786A" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="bg-surface-container text-on-surface rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-relaxed shadow-card">
+              好像……快到午饭时间了？<br/>你不吃的话，我也会饿扁扁的……
+            </div>
+            <span class="text-xs text-on-surface-variant pl-1 inline-flex items-center gap-1">
+              <i data-lucide="utensils" class="w-3 h-3 text-accent"></i>11:40 · 该吃午饭啦
+            </span>
+          </div>
+        </div>
+
+        <!-- 消息-宠物3：记忆（昨晚的饭） -->
+        <div class="flex items-end gap-2.5 max-w-[85%]">
+          <div class="w-8 h-8 rounded-full bg-primary-container/60 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M16 4c1.2 0 2.3.6 2.9 1.6l9 15.2c1 1.7-.2 3.8-2.2 3.8H6.3c-2 0-3.2-2.1-2.2-3.8l9-15.2A3.4 3.4 0 0 1 16 4Z" fill="#FFFFFF" stroke="#6E9B77" stroke-width="1.6" stroke-linejoin="round"/>
+              <rect x="11.5" y="19.5" width="9" height="6.3" rx="1.6" fill="#47644F"/>
+              <circle cx="12.9" cy="14.6" r="1.15" fill="#4A4038"/>
+              <circle cx="19.1" cy="14.6" r="1.15" fill="#4A4038"/>
+              <path d="M14.6 17.2q1.4 1.1 2.8 0" stroke="#C9786A" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="bg-surface-container text-on-surface rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-relaxed shadow-card">
+              对啦，昨晚你吃了番茄牛腩煲，听起来超好吃！
+            </div>
+            <span class="text-xs text-on-surface-variant pl-1">11:41</span>
+          </div>
+        </div>
+
+        <!-- 消息-用户2 -->
+        <div class="flex items-end justify-end gap-2.5 max-w-[80%] ml-auto">
+          <div class="flex flex-col gap-1 items-end">
+            <div class="bg-primary text-on-primary rounded-2xl rounded-br-md px-4 py-2.5 text-sm leading-relaxed shadow-card">
+              好啦好啦，这就去点个照烧鸡腿饭。
+            </div>
+            <span class="text-xs text-on-surface-variant pr-1">11:42</span>
+          </div>
+        </div>
+
+        <!-- 消息-宠物4：开心回应 -->
+        <div class="flex items-end gap-2.5 max-w-[85%]">
+          <div class="w-8 h-8 rounded-full bg-primary-container/60 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M16 4c1.2 0 2.3.6 2.9 1.6l9 15.2c1 1.7-.2 3.8-2.2 3.8H6.3c-2 0-3.2-2.1-2.2-3.8l9-15.2A3.4 3.4 0 0 1 16 4Z" fill="#FFFFFF" stroke="#6E9B77" stroke-width="1.6" stroke-linejoin="round"/>
+              <rect x="11.5" y="19.5" width="9" height="6.3" rx="1.6" fill="#47644F"/>
+              <path d="M12.4 14.2q.6-.9 1.2 0" stroke="#4A4038" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+              <path d="M18.4 14.2q.6-.9 1.2 0" stroke="#4A4038" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+              <path d="M13.8 16.8q2.2 2 4.4 0" stroke="#C9786A" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+              <circle cx="10.6" cy="16.4" r="1.3" fill="#F2BFB8" opacity="0.8"/>
+              <circle cx="21.4" cy="16.4" r="1.3" fill="#F2BFB8" opacity="0.8"/>
+            </svg>
+          </div>
+          <div class="flex flex-col gap-1">
+            <div class="bg-surface-container text-on-surface rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-relaxed shadow-card">
+              耶！那我也开动啦～<br/>记得细嚼慢咽哦。
+            </div>
+            <span class="text-xs text-on-surface-variant pl-1">11:42</span>
+          </div>
+        </div>
+
+        <!-- 消息-宠物：正在输入（流式回复占位，三点跳动） -->
+        <div id="typing-indicator" class="flex items-end gap-2.5 max-w-[80%]">
+          <div class="w-8 h-8 rounded-full bg-primary-container/60 flex items-center justify-center shrink-0">
+            <svg class="w-6 h-6" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M16 4c1.2 0 2.3.6 2.9 1.6l9 15.2c1 1.7-.2 3.8-2.2 3.8H6.3c-2 0-3.2-2.1-2.2-3.8l9-15.2A3.4 3.4 0 0 1 16 4Z" fill="#FFFFFF" stroke="#6E9B77" stroke-width="1.6" stroke-linejoin="round"/>
+              <rect x="11.5" y="19.5" width="9" height="6.3" rx="1.6" fill="#47644F"/>
+              <circle cx="12.9" cy="14.6" r="1.15" fill="#4A4038"/>
+              <circle cx="19.1" cy="14.6" r="1.15" fill="#4A4038"/>
+              <path d="M14.6 17.2q1.4 1.1 2.8 0" stroke="#C9786A" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="bg-surface-container rounded-2xl rounded-bl-md px-4 py-3 shadow-card flex items-center gap-1.5">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 3) 底部输入区 -->
+      <div id="chat-input-area" class="shrink-0 px-5 pt-3 pb-4 border-t border-outline-variant/20 bg-surface">
+
+        <!-- 快捷问题胶囊 -->
+        <div id="quick-questions" class="flex flex-wrap gap-2 mb-3">
+          <button type="button" data-quick="我今天吃得好吗？"
+                  class="quick-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent-container/70 text-accent text-xs font-medium hover:bg-accent-container active:scale-[0.97] transition-all">
+            <i data-lucide="salad" class="w-3.5 h-3.5"></i>我今天吃得好吗？
+          </button>
+          <button type="button" data-quick="讲句话鼓励我"
+                  class="quick-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-container/70 text-primary text-xs font-medium hover:bg-primary-container active:scale-[0.97] transition-all">
+            <i data-lucide="heart" class="w-3.5 h-3.5"></i>讲句话鼓励我
+          </button>
+          <button type="button" data-quick="晚饭吃什么好？"
+                  class="quick-chip inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface-variant text-xs font-medium hover:bg-surface-container-highest active:scale-[0.97] transition-all">
+            <i data-lucide="utensils" class="w-3.5 h-3.5"></i>晚饭吃什么好？
+          </button>
+        </div>
+
+        <!-- 输入框 + 发送按钮 -->
+        <div class="flex items-center gap-2">
+          <input id="chat-input" type="text" maxlength="100"
+                 placeholder="和团子说点什么…"
+                 class="flex-1 bg-surface-container border-none rounded-full px-5 py-3 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors" />
+          <button id="btn-send" type="button"
+                  class="w-11 h-11 rounded-full bg-primary text-on-primary flex items-center justify-center shrink-0 hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                  aria-label="发送" disabled>
+            <i data-lucide="send-horizontal" class="w-5 h-5"></i>
+          </button>
+        </div>
+        <p class="text-[11px] text-on-surface-variant/70 mt-2 text-center">团子的回复由 AI 生成，它会记得你最近吃了什么～</p>
+      </div>
+
+    </section>
+
+  </main>
+  <!-- @main-content:end -->
+
+  <script>
+    $(function () {
+      var $messages = $('#chat-messages');
+      var $input = $('#chat-input');
+      var $send = $('#btn-send');
+      var $typing = $('#typing-indicator');
+
+      // 滚动到底部
+      function scrollToBottom() {
+        $messages.scrollTop($messages[0].scrollHeight);
+      }
+      scrollToBottom();
+
+      // 当前时间 HH:MM
+      function nowTime() {
+        var d = new Date();
+        var h = String(d.getHours()).padStart(2, '0');
+        var m = String(d.getMinutes()).padStart(2, '0');
+        return h + ':' + m;
+      }
+
+      // 团子头像 SVG（消息气泡复用）
+      function petAvatar(svgInner) {
+        return '<div class="w-8 h-8 rounded-full bg-primary-container/60 flex items-center justify-center shrink-0">' +
+                 '<svg class="w-6 h-6" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
+                  '<path d="M16 4c1.2 0 2.3.6 2.9 1.6l9 15.2c1 1.7-.2 3.8-2.2 3.8H6.3c-2 0-3.2-2.1-2.2-3.8l9-15.2A3.4 3.4 0 0 1 16 4Z" fill="#FFFFFF" stroke="#6E9B77" stroke-width="1.6" stroke-linejoin="round"/>' +
+                  '<rect x="11.5" y="19.5" width="9" height="6.3" rx="1.6" fill="#47644F"/>' +
+                  svgInner +
+                 '</svg>' +
+               '</div>';
+      }
+      var petFace = '<circle cx="12.9" cy="14.6" r="1.15" fill="#4A4038"/>' +
+                    '<circle cx="19.1" cy="14.6" r="1.15" fill="#4A4038"/>' +
+                    '<path d="M14.6 17.2q1.4 1.1 2.8 0" stroke="#C9786A" stroke-width="1.1" stroke-linecap="round" fill="none"/>';
+
+      // 追加用户气泡
+      function appendUser(text) {
+        var html =
+          '<div class="flex items-end justify-end gap-2.5 max-w-[80%] ml-auto user-msg">' +
+            '<div class="flex flex-col gap-1 items-end">' +
+              '<div class="bg-primary text-on-primary rounded-2xl rounded-br-md px-4 py-2.5 text-sm leading-relaxed shadow-card"></div>' +
+              '<span class="text-xs text-on-surface-variant pr-1">' + nowTime() + '</span>' +
+            '</div>' +
+          '</div>';
+        var $node = $(html);
+        $node.find('.shadow-card').text(text);
+        $typing.before($node);
+        scrollToBottom();
+      }
+
+      // 追加宠物气泡
+      function appendPet(text) {
+        var html =
+          '<div class="flex items-end gap-2.5 max-w-[85%] pet-msg">' +
+            petAvatar(petFace) +
+            '<div class="flex flex-col gap-1">' +
+              '<div class="bg-surface-container text-on-surface rounded-2xl rounded-bl-md px-4 py-2.5 text-sm leading-relaxed shadow-card"></div>' +
+              '<span class="text-xs text-on-surface-variant pl-1">' + nowTime() + '</span>' +
+            '</div>' +
+          '</div>';
+        var $node = $(html);
+        $node.find('.shadow-card').text(text);
+        $typing.before($node);
+        scrollToBottom();
+      }
+
+      // 根据用户文本给出一句简短软萌回复（前端演示用，不调接口）
+      function petReply(text) {
+        var t = text;
+        if (t.indexOf('鼓励') !== -1) {
+          return '你今天也超努力的！好好吃饭，就是最棒的事～';
+        }
+        if (t.indexOf('晚饭') !== -1 || t.indexOf('晚餐') !== -1) {
+          return '晚饭想吃热乎的吗？来碗蔬菜乌冬面怎么样，暖呼呼的～';
+        }
+        if (t.indexOf('吃得好') !== -1 || t.indexOf('今天') !== -1) {
+          return '你今天还缺一顿午饭哦，吃完我就给你打满分！';
+        }
+        if (t.indexOf('饿') !== -1) {
+          return '那我们一起吃！你吃一口，我就长大一点点～';
+        }
+        return '嗯嗯，我在听呢～不过先要记得吃饭饭呀。';
+      }
+
+      // 发送消息（前端演示）
+      // 完整产品行为（后续接入 /api/chat SSE）：
+      // 1. 取输入文本，非空则追加为右侧用户气泡并清空输入、禁用发送
+      // 2. 显示"正在输入"气泡，POST /api/chat { content, petState, history }
+      // 3. 以 SSE 流式接收回复，在宠物气泡内打字机逐字渲染（替换 typing 占位）
+      // 4. 结束后保存消息到 localStorage（最近 N 轮），恢复输入可用
+      // 5. 若回复涉及"吃饭/点餐"，可联动提示去首页喂饭打卡
+      function sendMessage(text) {
+        if (!text || !text.trim()) return;
+        text = text.trim();
+        appendUser(text);
+        $input.val('');
+        $send.prop('disabled', true);
+        $typing.show();
+        scrollToBottom();
+
+        // 演示：延迟后给出一句本地 mock 回复
+        setTimeout(function () {
+          $typing.hide();
+          appendPet(petReply(text));
+          $input.focus();
+        }, 1400);
+      }
+
+      // 输入框：有内容才启用发送按钮
+      $input.on('input', function () {
+        $send.prop('disabled', !$(this).val().trim());
+      });
+
+      // 回车发送
+      $input.on('keydown', function (e) {
+        if (e.key === 'Enter' && !$send.prop('disabled')) {
+          e.preventDefault();
+          sendMessage($input.val());
+        }
+      });
+
+      // 点击发送
+      $send.on('click', function () {
+        sendMessage($input.val());
+      });
+
+      // 快捷问题胶囊：点击后把问题填入输入框并直接发送（视觉反馈 + 演示）
+      $('#quick-questions').on('click', '.quick-chip', function () {
+        var q = $(this).data('quick');
+        var $chip = $(this);
+        $chip.addClass('ring-2 ring-primary/30');
+        setTimeout(function () { $chip.removeClass('ring-2 ring-primary/30'); }, 400);
+        $input.val(q);
+        $send.prop('disabled', false);
+        sendMessage(q);
+      });
+
+      // 更多按钮 - 点击后应实现：
+      // 弹出菜单（清空聊天记录 / 导出对话 / 消息提醒设置）；
+      // "清空聊天记录"需二次确认后移除所有动态消息并恢复团子主动打招呼；
+      // 当前原型仅绑定入口。
+      $('#btn-chat-more').on('click', function () {
+        console.log('聊天更多菜单：清空记录 / 导出对话 / 提醒设置');
+      });
+    });
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>小洛小洛 · 首页</title>
+  <link rel="icon" href="image/avatar.jpg" />
+
+  
+
+
+  
+
+  <!-- Supabase JS SDK（本地文件）+ 共享账号/数据库逻辑，必须先于页面脚本加载 -->
+
+
+
+  <link rel="stylesheet" href="styles/tailwind.css" />
+
+  <style>
+    /* 团子微动效：呼吸浮动 + 开心跳跃 */
+    @keyframes pet-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes pet-breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+    @keyframes pet-hop {
+      0%   { transform: translateY(0) scale(1,1); }
+      30%  { transform: translateY(-22px) scale(0.96,1.05); }
+      55%  { transform: translateY(0) scale(1.06,0.92); }
+      75%  { transform: translateY(-8px) scale(0.99,1.02); }
+      100% { transform: translateY(0) scale(1,1); }
+    }
+    .pet-float   { animation: pet-float 3.2s ease-in-out infinite; }
+    .pet-breathe { animation: pet-breathe 3.2s ease-in-out infinite; transform-origin: 50% 90%; }
+    .pet-hop     { animation: pet-hop 0.7s ease-in-out; }
+
+    /* 气泡轻晃 */
+    @keyframes bubble-sway { 0%,100% { transform: rotate(-1deg); } 50% { transform: rotate(1.5deg); } }
+    .bubble-sway { animation: bubble-sway 4s ease-in-out infinite; transform-origin: 50% 100%; }
+
+    /* 喂饭抽屉滑入滑出 */
+    #feed-sheet { transition: transform .28s cubic-bezier(.34,1.3,.64,1); }
+    #feed-backdrop { transition: opacity .25s ease; }
+    #toast { transition: opacity .25s ease, transform .25s ease; }
+
+    /* 手绘描边通用类（SVG 内用） */
+    .sketch { stroke: #4A4038; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ===== 动态窗景：天空颜色与夜幕的平滑过渡 + 星星闪烁 ===== */
+    #sky-pane { transition: fill 1.2s ease; }
+    #light-beam { transition: fill 1.2s ease, opacity 1.2s ease; }
+    #night-overlay { transition: opacity 1.5s ease; }
+    @keyframes star-twinkle { 0%,100% { opacity: .3; } 50% { opacity: 1; } }
+    .star { animation: star-twinkle 2.6s ease-in-out infinite; }
+
+    /* ===== 场景切换：背景图与手绘小窝淡入淡出 ===== */
+    #scene-bg, #scene-svg { transition: opacity .4s ease; }
+    #scene-night { transition: opacity 1.5s ease; }
+  </style>
+</head>
+
+<body class="bg-background text-on-surface font-sans h-screen flex flex-col overflow-hidden select-none">
+
+  <!-- ===== 顶部条：头像 + 昵称 + 阶段徽章（参照 小suki 顶栏） ===== -->
+  <header class="shrink-0 h-14 px-3 flex items-center gap-2 z-20">
+    <!-- 左侧：团子头像 + 主人昵称 -->
+    <div class="flex items-center gap-1.5 shrink-0">
+      <span class="w-9 h-9 rounded-full bg-white border-[2.5px] border-on-surface/60 overflow-hidden shrink-0"><img src="image/avatar.jpg" class="w-full h-full object-cover" alt="小洛头像" draggable="false"/></span>
+      <span id="header-nickname" class="px-3 py-1 rounded-full bg-white/85 border-2 border-on-surface/50 text-sm font-bold text-on-surface">…</span>
+    </div>
+    <!-- 右侧：阶段徽章 + 退出（injectNavUser 填充） -->
+    <div class="ml-auto flex items-center gap-1.5">
+      <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/80 border-2 border-on-surface/60 text-xs font-semibold text-on-surface">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none"><path d="M8 2c2 3 2 7 0 10-2-3-2-7 0-10Z" fill="#F2BFB8"/></svg>
+        <span id="stage-label">小小洛</span>
+      </span>
+      <div id="user-area" class="flex items-center gap-1 shrink-0"></div>
+    </div>
+  </header>
+
+  <!-- ===== 中间：手绘小窝场景 ===== -->
+  <main class="flex-1 min-h-0 px-2 pb-1 flex">
+    <div class="relative mx-auto w-full max-w-[440px] rounded-[30px] border-[3px] border-on-surface/50 overflow-hidden shadow-float bg-floor">
+      <!-- 场景背景图层（旅行到公园/海边等时显示；小窝时隐藏） -->
+      <img id="scene-bg" src="" alt="" class="absolute inset-0 w-full h-full object-cover pointer-events-none" style="opacity:0" draggable="false"/>
+
+      <!-- 场景 SVG：奶油墙 + 淡蓝地板 + 手绘家具（小窝专属） -->
+      <svg id="scene-svg" class="absolute inset-0 w-full h-full" viewBox="0 0 440 720" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <!-- 窗户玻璃的裁剪区：太阳/月亮/星星/云都限制在玻璃范围内 -->
+          <clipPath id="pane-clip"><rect x="318" y="94" width="98" height="130" rx="6"/></clipPath>
+        </defs>
+        <!-- 墙面（奶油）与地板（淡蓝） -->
+        <rect x="0" y="0" width="440" height="440" fill="#F7F2E6"/>
+        <rect x="0" y="440" width="440" height="280" fill="#D9E9F3"/>
+        <line x1="0" y1="440" x2="440" y2="440" stroke="#4A4038" stroke-opacity="0.35" stroke-width="2.5"/>
+
+        <!-- 墙面踢脚线 -->
+        <rect x="0" y="428" width="440" height="12" fill="#EFE7D4"/>
+        <line x1="0" y1="428" x2="440" y2="428" stroke="#4A4038" stroke-opacity="0.3" stroke-width="2"/>
+
+        <!-- 右侧窗户 + 窗帘（窗景随时间变化：白天/中午/傍晚/黑夜） -->
+        <g>
+          <rect x="308" y="84" width="118" height="150" rx="10" fill="#FFFFFF" class="sketch"/>
+          <!-- 玻璃 = 天空底色，由 JS 按时段改色 -->
+          <rect id="sky-pane" x="318" y="94" width="98" height="130" rx="6" fill="#A8D4EE"/>
+          <!-- 玻璃内的景色：太阳 / 月亮星星 / 云（裁剪在玻璃内） -->
+          <g clip-path="url(#pane-clip)">
+            <!-- 清晨的太阳（低、柔和） -->
+            <g id="sun-morning" style="display:none">
+              <circle cx="342" cy="182" r="12" fill="#F7CE6B"/>
+              <g stroke="#E8B84B" stroke-width="2.5" stroke-linecap="round">
+                <path d="M342 164v-5M342 200v5M324 182h-5M360 182h5M329 169l-4-4M355 195l4 4M355 169l4-4M329 195l-4 4"/>
+              </g>
+            </g>
+            <!-- 正午的太阳（高、明亮） -->
+            <g id="sun-noon">
+              <circle cx="367" cy="126" r="15" fill="#F5B840"/>
+              <g stroke="#E8A93B" stroke-width="2.5" stroke-linecap="round">
+                <path d="M367 104v-6M367 148v6M345 126h-6M389 126h6M351 110l-4-4M383 142l4 4M383 110l4-4M351 142l-4 4"/>
+              </g>
+            </g>
+            <!-- 傍晚的落日（橙、贴近窗底） -->
+            <g id="sun-evening" style="display:none">
+              <circle cx="398" cy="194" r="12" fill="#EE9A4F"/>
+              <g stroke="#E0873C" stroke-width="2.5" stroke-linecap="round">
+                <path d="M398 176v-5M382 186l-4-3M414 186l4-3M386 202l-3 3M410 202l3 3"/>
+              </g>
+            </g>
+            <!-- 黑夜的月亮和星星 -->
+            <g id="sky-night" style="display:none">
+              <circle cx="392" cy="128" r="13" fill="#F2ECD8"/>
+              <circle cx="388" cy="124" r="3" fill="#D9D2BC"/>
+              <circle cx="396" cy="133" r="2" fill="#D9D2BC"/>
+              <circle class="star" cx="332" cy="112" r="1.8" fill="#FFFFFF"/>
+              <circle class="star" style="animation-delay:-.9s" cx="352" cy="142" r="1.5" fill="#FFFFFF"/>
+              <circle class="star" style="animation-delay:-1.7s" cx="382" cy="102" r="1.8" fill="#FFFFFF"/>
+              <circle class="star" style="animation-delay:-.4s" cx="406" cy="152" r="1.5" fill="#FFFFFF"/>
+              <circle class="star" style="animation-delay:-2.1s" cx="328" cy="172" r="1.6" fill="#FFFFFF"/>
+              <circle class="star" style="animation-delay:-1.2s" cx="366" cy="168" r="1.4" fill="#FFFFFF"/>
+            </g>
+            <!-- 窗外小云（傍晚/黑夜会换颜色） -->
+            <path id="sky-cloud" d="M336 122c-5 0-8-3-8-7s3-7 8-7c2-3 5-5 9-5 5 0 9 3 10 8 4 0 6 2 6 5s-3 6-7 6h-18Z" fill="#FFFFFF"/>
+          </g>
+          <!-- 窗棂（压在景色上面） -->
+          <line x1="367" y1="94" x2="367" y2="224" stroke="#4A4038" stroke-width="2.5"/>
+          <line x1="318" y1="159" x2="416" y2="159" stroke="#4A4038" stroke-width="2.5"/>
+          <!-- 窗帘杆与窗帘 -->
+          <line x1="298" y1="72" x2="436" y2="72" stroke="#4A4038" stroke-width="3"/>
+          <circle cx="298" cy="72" r="3.5" fill="#4A4038"/><circle cx="436" cy="72" r="3.5" fill="#4A4038"/>
+          <path d="M310 76c-6 40-8 90 2 132 8-10 14-60 10-132Z" fill="#FBF6EA" class="sketch"/>
+          <path d="M424 76c6 40 8 90-2 132-8-10-14-60-10-132Z" fill="#FBF6EA" class="sketch"/>
+        </g>
+
+        <!-- 窗光斜照（颜色与强度随时段变化） -->
+        <path id="light-beam" d="M320 250 L440 420 L440 300 L370 230 Z" fill="#FFFFFF" opacity="0.38"/>
+
+        <!-- 墙上挂画两幅 -->
+        <g>
+          <rect x="70" y="140" width="56" height="70" rx="8" fill="#FFFFFF" class="sketch"/>
+          <rect x="78" y="148" width="40" height="54" rx="4" fill="#EAF2F8"/>
+          <circle cx="98" cy="168" r="9" fill="#F4D08A"/>
+          <path d="M80 196q18-16 36-2" stroke="#8FAE7E" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <rect x="140" y="152" width="64" height="50" rx="8" fill="#FFFFFF" class="sketch"/>
+          <rect x="148" y="160" width="48" height="34" rx="4" fill="#F0E6CF"/>
+          <path d="M154 188l10-12 8 8 8-10 10 14" stroke="#8C8070" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </g>
+
+        <!-- 落地灯（右侧） -->
+        <g>
+          <path d="M392 436V300q0-16 14-20l6-2" stroke="#4A4038" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+          <path d="M382 300h26l8-22q2-8-7-8h-24q-9 0-7 8l4 22Z" fill="#B9C4CC" class="sketch"/>
+          <ellipse cx="392" cy="440" rx="26" ry="7" fill="#B9C4CC" class="sketch"/>
+        </g>
+        <!-- 夜晚台灯光晕（仅黑夜时段显示） -->
+        <circle id="lamp-glow" cx="384" cy="288" r="34" fill="#FFE9A8" opacity="0.4" style="display:none"/>
+
+        <!-- 绿色沙发（中景） -->
+        <g>
+          <path d="M96 366q-14 0-14 16v56q0 12 12 12h186q12 0 12-12v-56q0-16-14-16z" fill="#8FAE7E" class="sketch"/>
+          <path d="M96 366q0-22 24-22h134q24 0 24 22v18H96Z" fill="#9DBA8B" class="sketch"/>
+          <!-- 两个坐垫 -->
+          <rect x="112" y="376" width="72" height="30" rx="12" fill="#E9EDD8" class="sketch" stroke-width="2.5"/>
+          <rect x="192" y="376" width="72" height="30" rx="12" fill="#E9EDD8" class="sketch" stroke-width="2.5"/>
+          <!-- 垫子上的小草纹 -->
+          <path d="M142 388q4-6 8 0M146 392q3-4 6 0M226 388q4-6 8 0M230 392q3-4 6 0" stroke="#B9C99B" stroke-width="2" stroke-linecap="round" fill="none"/>
+          <!-- 扶手 -->
+          <path d="M82 400q-10 0-10 12v22q0 10 12 10h12v-44Z" fill="#8FAE7E" class="sketch"/>
+          <path d="M292 400q10 0 10 12v22q0 10-12 10h-12v-44Z" fill="#8FAE7E" class="sketch"/>
+          <!-- 底边 -->
+          <path d="M92 450v10M282 450v10" stroke="#4A4038" stroke-width="3" stroke-linecap="round"/>
+        </g>
+
+        <!-- 沙发旁绿植（白花） -->
+        <g>
+          <path d="M304 428q-2-26 10-38M310 428q2-20 16-26M298 428q-8-18-18-22" stroke="#7BA86F" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <circle cx="315" cy="386" r="5" fill="#FFFFFF" class="sketch" stroke-width="2"/>
+          <circle cx="328" cy="399" r="4.5" fill="#FFFFFF" class="sketch" stroke-width="2"/>
+          <circle cx="279" cy="404" r="4.5" fill="#FFFFFF" class="sketch" stroke-width="2"/>
+          <path d="M288 428h40l-5 26q-1 6-8 6h-14q-7 0-8-6Z" fill="#DCE9DA" class="sketch"/>
+        </g>
+
+        <!-- 左侧小凳 + 奶茶杯 -->
+        <g>
+          <rect x="52" y="404" width="64" height="12" rx="6" fill="#E8A9A0" class="sketch" stroke-width="2.5"/>
+          <path d="M60 416l-4 26M108 416l4 26M84 416v26" stroke="#4A4038" stroke-width="3" stroke-linecap="round"/>
+          <path d="M74 380h20v22q0 5-5 5h-10q-5 0-5-5Z" fill="#F8E6D0" class="sketch" stroke-width="2.5"/>
+          <path d="M74 386h20" stroke="#C9786A" stroke-width="2.5"/>
+          <path d="M94 384q8 2 6 9" stroke="#4A4038" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </g>
+
+        <!-- 中央木茶几 + 小台灯 + 收音机 -->
+        <g>
+          <rect x="150" y="500" width="150" height="12" rx="6" fill="#C9A36B" class="sketch"/>
+          <path d="M162 512l-6 46M288 512l6 46M225 512v46" stroke="#4A4038" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- 小台灯 -->
+          <path d="M196 500v-26" stroke="#4A4038" stroke-width="3" stroke-linecap="round"/>
+          <path d="M184 474h24l-5-14q-1-4-6-4h-2q-5 0-6 4Z" fill="#F4D08A" class="sketch" stroke-width="2.5"/>
+          <ellipse cx="196" cy="500" rx="10" ry="3.5" fill="#C9A36B"/>
+          <!-- 收音机 -->
+          <rect x="232" y="474" width="44" height="26" rx="7" fill="#F7D9BF" class="sketch" stroke-width="2.5"/>
+          <circle cx="244" cy="487" r="6" fill="#FFFFFF" class="sketch" stroke-width="2"/>
+          <path d="M258 482h12M258 488h12M258 494h8" stroke="#4A4038" stroke-width="2" stroke-linecap="round"/>
+          <!-- 猫咪小摆件 -->
+          <path d="M286 500v-16l4 4 4-4v16" fill="#E8A9A0" class="sketch" stroke-width="2.5"/>
+        </g>
+
+        <!-- 大地毯（白色，波浪边） -->
+        <g>
+          <path d="M96 560q-8 0-8 10v76q0 10 10 10h244q10 0 10-10v-76q0-10-8-10Z"
+                fill="#FDFBF4" class="sketch" stroke-width="3"/>
+          <path d="M100 566q6 6 12 0t12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0 12 0"
+                stroke="#E0D6C2" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </g>
+
+        <!-- 地毯上：小狗骨头 + 海星 + 睡垫 -->
+        <g>
+          <path d="M128 636q-4-6 2-9t9 3l14 8q6 3 3 9t-9 3l-14-8q-5-3-5-6Z" fill="#FFFFFF" class="sketch" stroke-width="2.5"/>
+          <path d="M316 640q4-8 10-4t0 10q8 0 6 8t-10 4l-12-6q-4-4 0-9Z" fill="#F4D08A" class="sketch" stroke-width="2.5"/>
+          <ellipse cx="226" cy="648" rx="34" ry="12" fill="#B9C9DE" class="sketch" stroke-width="2.5"/>
+        </g>
+
+        <!-- 左下角落：小石头摆件 -->
+        <g>
+          <path d="M28 690q-2-18 14-22t24 6q10 8 2 18Z" fill="#C9CDD4" class="sketch" stroke-width="2.5"/>
+          <path d="M44 664l3-8 3 8" stroke="#E5964E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </g>
+      </svg>
+
+      <!-- 夜幕层：黑夜时段给"当前场景"（无论小窝还是旅行地）蒙上夜色 -->
+      <div id="scene-night" class="absolute inset-0 bg-[#223055] pointer-events-none" style="opacity:0"></div>
+
+      <!-- 状态徽章（左上角，小而轻） -->
+      <div class="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/85 backdrop-blur border-2 border-on-surface/40 text-xs font-semibold text-on-surface w-fit">
+          <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#6E9B77" stroke-width="1.8"/><path d="M8 5v3l2 2" stroke="#6E9B77" stroke-width="1.8" stroke-linecap="round"/></svg>
+          <span id="pet-lastfed">还没喂过哦</span>
+        </span>
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/85 backdrop-blur border-2 border-on-surface/40 text-xs font-semibold text-on-surface w-fit">
+          <svg class="w-3 h-3" viewBox="0 0 16 16" fill="none"><path d="M4 3h8a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="#E5964E" stroke-width="1.8"/><path d="M5.5 6h5M5.5 8.5h5" stroke="#E5964E" stroke-width="1.8" stroke-linecap="round"/></svg>
+          已累计 <span id="growth-total">0</span> 餐
+        </span>
+      </div>
+
+      <!-- 团子的说话气泡 -->
+      <div class="absolute left-1/2 top-[38%] -translate-x-1/2 z-10 bubble-sway">
+        <div class="relative bg-white border-[3px] border-on-surface/60 rounded-2xl rounded-bl-md px-4 py-2.5 shadow-card max-w-[220px]">
+          <p id="pet-bubble" class="text-sm text-on-surface leading-snug font-medium">你回来啦～</p>
+        </div>
+      </div>
+
+      <!-- 角色立绘（坐在地毯中央，图片随进化阶段切换） -->
+      <div id="pet-sprite" class="pet-float absolute left-1/2 top-[56%] -translate-x-1/2 z-10 cursor-pointer" style="width:154px">
+        <img id="pet-img" src="image/pet-1.png" alt="当前角色形象" class="w-full h-auto pet-breathe" draggable="false"
+             style="filter: drop-shadow(0 10px 14px rgba(74,64,56,0.25));" />
+      </div>
+
+      <!-- 防闪屏脚本：页面还在解析时就立刻应用「上次记住的场景和角色形象」，
+           抢在浏览器第一次画屏幕之前，这样切回首页不会闪回小窝/小小洛 -->
+      <script>
+        (function () {
+          // 1) 场景
+          var sceneId = 'room';
+          try { sceneId = localStorage.getItem('fanfan-scene') || 'room'; } catch (e) { }
+          if (sceneId !== 'room') {
+            var imgs = {
+              park: 'background/park.jpg',
+              garden: 'background/garden.jpg',
+              beach: 'background/beach.jpg',
+              playground: 'background/playground.jpg',
+              bedroom: 'background/bedroom.jpg'
+            };
+            var src = imgs[sceneId];
+            if (src) {
+              var bg = document.getElementById('scene-bg');
+              bg.src = src;
+              bg.style.opacity = '1';
+              document.getElementById('scene-svg').style.opacity = '0';
+            } else {
+              try { localStorage.setItem('fanfan-scene', 'room'); } catch (e) { } // 记忆坏了就回退小窝
+            }
+          }
+          // 2) 角色形象
+          try {
+            var c = JSON.parse(localStorage.getItem('fanfan-pet-cache') || 'null');
+            if (c && c.img) {
+              document.getElementById('pet-img').src = c.img;
+              document.getElementById('stage-label').textContent = c.name;
+              document.getElementById('growth-total').textContent = c.meals;
+            }
+          } catch (e) { }
+        })();
+      </script>
+
+      <!-- 右侧悬浮按钮列：喂饭 / 旅行 -->
+      <div class="absolute right-3 top-[26%] flex flex-col items-center gap-3 z-20">
+        <button id="btn-open-feed" type="button" aria-label="喂饭"
+                class="w-14 h-14 rounded-full bg-primary text-on-primary border-[3px] border-on-surface/60 shadow-float flex items-center justify-center active:scale-95 transition-transform">
+          <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v6M8 3v6M16 3v6M12 9v12M12 9c-4 0-6 2.5-6 6"/><path d="M12 9c4 0 6 2.5 6 6"/></svg>
+          <span class="sr-only">喂饭</span>
+        </button>
+        <!-- 旅行：切换场景 -->
+        <button id="btn-open-scene" type="button" aria-label="旅行切换场景"
+                class="w-11 h-11 rounded-full bg-white/90 border-[3px] border-on-surface/50 shadow-card flex items-center justify-center active:scale-95 transition-transform">
+          <svg class="w-5.5 h-5.5" viewBox="0 0 24 24" fill="none" stroke="#4A4038" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5 5-2Z"/></svg>
+        </button>
+        
+      </div>
+    </div>
+  </main>
+
+  <!-- ===== 底部弧形导航（手绘图标 + 白色弧面） ===== -->
+  <nav class="shrink-0 relative z-20 -mt-4">
+    <div class="mx-auto max-w-[440px] bg-white border-t-[3px] border-x-[3px] border-on-surface/50 rounded-t-[34px] px-6 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-start justify-around">
+      <!-- 首页（当前） -->
+      <a href="home.html" class="flex flex-col items-center gap-1 w-14">
+        <span class="w-11 h-11 rounded-2xl bg-primary-container/80 border-2 border-on-surface/50 flex items-center justify-center">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#4A4038" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg>
+        </span>
+        <span class="text-xs font-bold text-primary">首页</span>
+      </a>
+      <!-- 成长 -->
+      <a href="stats.html" class="flex flex-col items-center gap-1 w-14">
+        <span class="w-11 h-11 rounded-2xl flex items-center justify-center">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#4A4038" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20q6 2 10-2M6 16q1-5 6-5M18 4q2 6-3 9M9 20h6"/></svg>
+        </span>
+        <span class="text-xs text-on-surface-variant">成长</span>
+      </a>
+      <!-- 日记 -->
+      <a href="diary.html" class="flex flex-col items-center gap-1 w-14">
+        <span class="w-11 h-11 rounded-2xl flex items-center justify-center">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#4A4038" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5a2 2 0 0 1 2-2h12v18H7a2 2 0 0 1-2-2Z"/><path d="M5 17h14"/><path d="M9 7h6M9 11h6"/></svg>
+        </span>
+        <span class="text-xs text-on-surface-variant">日记</span>
+      </a>
+      <!-- 陪伴 -->
+      <a href="chat.html" class="flex flex-col items-center gap-1 w-14">
+        <span class="w-11 h-11 rounded-2xl flex items-center justify-center">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="#4A4038" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l2-3a8 8 0 1 1 15-5Z"/><circle cx="9" cy="12" r="0.5" fill="#4A4038"/><circle cx="13" cy="12" r="0.5" fill="#4A4038"/><circle cx="17" cy="12" r="0.5" fill="#4A4038"/></svg>
+        </span>
+        <span class="text-xs text-on-surface-variant">陪伴</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- ===== 喂饭抽屉（点击「喂饭」弹出） ===== -->
+  <div id="feed-backdrop" class="fixed inset-0 bg-on-surface/30 z-40 opacity-0 pointer-events-none"></div>
+  <div id="feed-sheet" class="fixed left-1/2 bottom-0 -translate-x-1/2 w-full max-w-[460px] bg-surface border-t-[3px] border-x-[3px] border-on-surface/50 rounded-t-[30px] z-50 px-6 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] translate-y-full">
+    <div class="w-12 h-1.5 rounded-full bg-surface-container-high mx-auto mb-4"></div>
+    <h2 class="font-display text-xl text-on-surface mb-1 flex items-center gap-2">
+      今天喂它吃点什么？
+      <button id="btn-close-feed" type="button" class="ml-auto w-8 h-8 rounded-full bg-surface-container flex items-center justify-center" aria-label="关闭">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#8C8070" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </h2>
+    <p class="text-xs text-on-surface-variant mb-4">记录你吃的一餐，它陪你一起长大～</p>
+    <div class="flex items-center gap-2">
+      <input id="feed-input" type="text" placeholder="今天吃了什么呀？比如：番茄炒蛋盖饭"
+             class="flex-1 bg-surface-container border-2 border-on-surface/20 rounded-full px-5 py-3.5 text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary/50 transition-colors" />
+    </div>
+    <button id="btn-feed" disabled
+            class="mt-3 w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary border-2 border-on-surface/50 py-3.5 rounded-full text-sm font-bold shadow-card hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round"><path d="M12 3v6M8 3v6M16 3v6M12 9v12M12 9c-4 0-6 2.5-6 6M12 9c4 0 6 2.5 6 6"/></svg>
+      喏，开饭啦
+    </button>
+    <div class="flex flex-wrap items-center gap-2 mt-4">
+      <span class="text-xs text-on-surface-variant">快捷：</span>
+      <button class="chip-food text-xs px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant hover:text-primary hover:bg-primary-container/50 transition-colors" data-food="番茄炒蛋盖饭">番茄炒蛋盖饭</button>
+      <button class="chip-food text-xs px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant hover:text-primary hover:bg-primary-container/50 transition-colors" data-food="豚骨拉面">豚骨拉面</button>
+      <button class="chip-food text-xs px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant hover:text-primary hover:bg-primary-container/50 transition-colors" data-food="三文鱼饭团">三文鱼饭团</button>
+      <button class="chip-food text-xs px-3 py-1.5 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant hover:text-primary hover:bg-primary-container/50 transition-colors" data-food="味噌汤配米饭">味噌汤配米饭</button>
+    </div>
+  </div>
+
+  <!-- ===== 场景选择抽屉（点击「旅行」弹出） ===== -->
+  <div id="scene-sheet" class="fixed left-1/2 bottom-0 -translate-x-1/2 w-full max-w-[460px] bg-surface border-t-[3px] border-x-[3px] border-on-surface/50 rounded-t-[30px] z-50 px-6 pt-3 pb-[max(1.25rem,env(safe-area-inset-bottom))] translate-y-full">
+    <div class="w-12 h-1.5 rounded-full bg-surface-container-high mx-auto mb-4"></div>
+    <h2 class="font-display text-xl text-on-surface mb-1 flex items-center gap-2">
+      带它去哪儿玩？
+      <button id="btn-close-scene" type="button" class="ml-auto w-8 h-8 rounded-full bg-surface-container flex items-center justify-center" aria-label="关闭">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="#8C8070" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </h2>
+    <p class="text-xs text-on-surface-variant mb-4">选一个场景，它会一直记住哦～</p>
+    <div id="scene-grid" class="grid grid-cols-3 gap-3"></div>
+  </div>
+
+  <!-- 开心反馈 Toast -->
+  <div id="toast" class="fixed left-1/2 bottom-28 -translate-x-1/2 translate-y-4 opacity-0 pointer-events-none z-[60]">
+    <div class="bg-on-surface text-surface px-5 py-3 rounded-full shadow-float flex items-center gap-2 text-sm font-medium whitespace-nowrap">
+      <span class="text-accent">🍚</span>
+      <span id="toast-text">吧唧吧唧～吃得很开心！</span>
+    </div>
+  </div>
+
+    <script src="js/vendor/jquery-3.7.1.min.js"></script>
+  <script src="js/vendor/lucide-1.11.0.min.js"></script>
+  <script src="js/vendor/supabase.js"></script>
+  <script src="js/app.js?v=13"></script>
+<script>
+    $(async function () {
+      // ========== 先用上次记住的形象渲染，避免切页时闪回第一阶段 ==========
+      try {
+        var cachedPet = JSON.parse(localStorage.getItem('fanfan-pet-cache') || 'null');
+        if (cachedPet && cachedPet.img) {
+          document.getElementById('pet-img').src = cachedPet.img;
+          document.getElementById('stage-label').textContent = cachedPet.name;
+          document.getElementById('growth-total').textContent = cachedPet.meals;
+        }
+      } catch (e) { /* 本地缓存异常就忽略，走正常流程 */ }
+
+      // ========== 场景系统：小窝 + 旅行地（公园/花园/海边/游乐场/卧室） ==========
+      var SCENES = [
+        { id: 'room',       name: '小窝' },
+        { id: 'park',       name: '公园',   img: 'background/park.jpg' },
+        { id: 'garden',     name: '花园',   img: 'background/garden.jpg' },
+        { id: 'beach',      name: '海边',   img: 'background/beach.jpg' },
+        { id: 'playground', name: '游乐场', img: 'background/playground.jpg' },
+        { id: 'bedroom',    name: '卧室',   img: 'background/bedroom.jpg' },
+      ];
+      var currentScene = 'room';
+
+      // 应用场景：room 显示手绘小窝 SVG，其他显示背景图；save=true 时记住选择
+      function applyScene(id, save) {
+        var sc = SCENES[0]; // 防御：找不到就回退小窝
+        for (var i = 0; i < SCENES.length; i++) { if (SCENES[i].id === id) sc = SCENES[i]; }
+        currentScene = sc.id;
+        var $bg = $('#scene-bg'), $svg = $('#scene-svg');
+        if (sc.img) {
+          if ($bg.attr('src') !== sc.img) $bg.attr('src', sc.img);
+          $bg.css('opacity', 1);
+          $svg.css('opacity', 0);
+        } else {
+          $bg.css('opacity', 0);
+          $svg.css('opacity', 1);
+        }
+        if (save) { try { localStorage.setItem('fanfan-scene', sc.id); } catch (e) { } }
+        // 抽屉里的选中高亮
+        $('#scene-grid [data-scene]').each(function () {
+          var $item = $(this);
+          var active = $item.data('scene') === sc.id;
+          $item.toggleClass('border-primary bg-primary-container/40', active)
+               .toggleClass('border-outline-variant/50 bg-surface', !active);
+          $item.find('.scene-check').toggle(active);
+        });
+      }
+
+      // 进页面先用上次记住的场景（在登录检查之前，零等待）
+      var savedScene = 'room';
+      try { savedScene = localStorage.getItem('fanfan-scene') || 'room'; } catch (e) { }
+      applyScene(savedScene, false);
+
+      // 抽屉相关元素提前获取：场景抽屉不依赖登录，随时能开
+      var $sheet = $('#feed-sheet');
+      var $backdrop = $('#feed-backdrop');
+
+      // ===== 场景选择抽屉 =====
+      function renderSceneGrid() {
+        var html = '';
+        SCENES.forEach(function (sc) {
+          var active = sc.id === currentScene;
+          var thumb = sc.img
+            ? '<img src="' + sc.img + '" class="w-full h-14 object-cover rounded-lg" draggable="false"/>'
+            : '<div class="w-full h-14 rounded-lg bg-[#F7F2E6] border border-outline-variant/60 flex items-center justify-center text-xl">🏠</div>';
+          html +=
+            '<button type="button" data-scene="' + sc.id + '" class="relative rounded-xl border-2 p-1.5 flex flex-col items-center gap-1 active:scale-95 transition-all ' +
+            (active ? 'border-primary bg-primary-container/40' : 'border-outline-variant/50 bg-surface') + '">' +
+              (active ? '<span class="scene-check absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-primary text-on-primary flex items-center justify-center"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>' : '<span class="scene-check" style="display:none"></span>') +
+              thumb +
+              '<span class="text-xs font-medium ' + (active ? 'text-primary' : 'text-on-surface') + '">' + sc.name + '</span>' +
+            '</button>';
+        });
+        $('#scene-grid').html(html);
+      }
+      // 点场景卡：切换 + 记住 + 收起抽屉
+      $('#scene-grid').on('click', '[data-scene]', function () {
+        applyScene($(this).data('scene'), true);
+        setTimeout(closeSheet, 250);
+      });
+      // 预加载全部场景图，切换瞬间不闪白
+      // 场景图按需加载，避免打开首页时占用带宽
+      // 打开/关闭按钮（不依赖登录，页面加载完即可用）
+      $('#btn-open-scene').on('click', function () {
+        renderSceneGrid();
+        openSheet($('#scene-sheet'));
+      });
+      $('#btn-close-scene').on('click', closeSheet);
+
+      // ========== 门卫：没登录会被送去 login.html ==========
+      var user = await FanFan.requireLogin();
+      if (!user) return;
+      FanFan.injectNavUser(user);
+      // 顶栏昵称（小suki 式头像胶囊；injectNavUser 的胶囊在窄屏隐藏，这里始终显示）
+      $('#header-nickname').text((user.user_metadata && user.user_metadata.nickname) || '小伙伴');
+
+      // ========== 元素 ==========
+      var $feedInput = $('#feed-input');
+      var $btnFeed = $('#btn-feed');
+      var $sprite = $('#pet-sprite');
+      var feedBusy = false; // 防止连点重复提交
+
+      function refreshFeedBtn() {
+        $btnFeed.prop('disabled', !$.trim($feedInput.val()) || feedBusy);
+      }
+      $feedInput.on('input', refreshFeedBtn);
+
+      // ===== 抽屉开关（喂饭抽屉 + 场景抽屉共用一个背景遮罩） =====
+      function openSheet($which) {
+        $which.removeClass('translate-y-full');
+        $backdrop.removeClass('opacity-0 pointer-events-none');
+      }
+      function closeSheet() {
+        $sheet.addClass('translate-y-full');
+        $('#scene-sheet').addClass('translate-y-full');
+        $backdrop.addClass('opacity-0 pointer-events-none');
+      }
+      $('#btn-open-feed').on('click', function () {
+        openSheet($sheet);
+        setTimeout(function () { $feedInput.focus(); }, 300);
+      });
+      $('#btn-close-feed').on('click', closeSheet);
+      $backdrop.on('click', closeSheet);
+
+      // 快捷饭菜标签 -> 填入输入框
+      $('.chip-food').on('click', function () {
+        $feedInput.val($(this).data('food'));
+        refreshFeedBtn();
+        $feedInput.focus();
+      });
+
+      // Toast 提示
+      function showToast(text) {
+        $('#toast-text').text(text);
+        $('#toast').css({ opacity: 1, transform: 'translate(-50%, 0)' });
+        setTimeout(function () {
+          $('#toast').css({ opacity: 0, transform: 'translate(-50%, 16px)' });
+        }, 2400);
+      }
+
+      // ========== 把团子状态渲染到场景里 ==========
+      function timeAgo(iso) {
+        if (!iso) return '还没喂过哦';
+        var mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+        if (mins < 1) return '刚刚喂过';
+        if (mins < 60) return mins + ' 分钟前喂过';
+        var h = Math.floor(mins / 60);
+        if (h < 24) return h + ' 小时前喂过';
+        return Math.floor(h / 24) + ' 天前喂过';
+      }
+      // ========== 气泡语料：按状态分池，点击角色随机换一句 ==========
+      var BUBBLES = {
+        never:    ['你好呀，我是{n}！喂我第一顿饭吧～', '初次见面！以后一起好好吃饭吧～'],
+        full:     ['吧唧吧唧…肚子饱饱的，最喜欢你啦！', '今天也是元气满满的一天～', '嘿嘿，吃饱了就想赖着你～', '饱洋洋的…好想睡个午觉呀～', '被你养得圆圆的，超幸福！', '小潘也要好好吃饭哦～'],
+        hungry:   ['好像有点馋了…你吃了什么好吃的呀？', '闻到饭香了吗？我好像闻到了～', '再不吃东西，我要饿扁扁了哦～', '下次吃饭记得叫我一声呀～'],
+        starving: ['肚子咕咕叫了…快来喂喂我吧！', '饿到眼睛都花了…求投喂！', '你吃饭了吗？别忘了带上我呀～', '再不吃我就瘦成一道闪电啦！'],
+      };
+      // 判断当前状态：never=从没喂过 full=3小时内喂过 hungry=3~6小时 starving=超过6小时
+      function stateOf(meta) {
+        if (!meta.last_fed_at) return 'never';
+        var mins = (Date.now() - new Date(meta.last_fed_at).getTime()) / 60000;
+        if (mins < 180) return 'full';
+        if (mins < 360) return 'hungry';
+        return 'starving';
+      }
+      function bubbleText(meta) {
+        var pool = BUBBLES[stateOf(meta)];
+        var s = pool[Math.floor(Math.random() * pool.length)];
+        var name = FanFan.STAGES[FanFan.stageForMeals(meta.total_meals || 0)].name;
+        return s.replace('{n}', name);
+      }
+      var lastMeta = null; // 记住当前状态，点击角色换句时用
+      function renderPet(meta) {
+        var meals = meta.total_meals || 0;
+        var stageIdx = FanFan.stageForMeals(meals);
+        $('#stage-label').text(FanFan.STAGES[stageIdx].name);
+        $('#pet-lastfed').text(timeAgo(meta.last_fed_at));
+        $('#growth-total').text(meals);
+        $('#pet-bubble').text(bubbleText(meta));
+        // 角色形象跟随阶段切换
+        $('#pet-img').attr('src', FanFan.STAGES[stageIdx].img);
+        $('#pet-img').attr('alt', '当前角色形象：' + FanFan.STAGES[stageIdx].name);
+        // 记住当前形象，下次切页时先用它，不闪回小小洛
+        try {
+          localStorage.setItem('fanfan-pet-cache', JSON.stringify({
+            img: FanFan.STAGES[stageIdx].img,
+            name: FanFan.STAGES[stageIdx].name,
+            meals: meals
+          }));
+        } catch (e) { }
+        lastMeta = meta;
+      }
+      renderPet(user.user_metadata || {});
+      // 预加载全部阶段形象，进化切换瞬间不闪白
+      // 宠物阶段图按需加载，避免阻塞首页交互
+      // 调试口子：控制台可查语料池与状态判定
+      window.__bubbleDebug = { stateOf: stateOf, BUBBLES: BUBBLES };
+
+      // 点击角色：换个心情说话 + 小跳一下
+      $('#pet-sprite').on('click', function () {
+        if (!lastMeta) return;
+        var pool = BUBBLES[stateOf(lastMeta)];
+        var cur = $('#pet-bubble').text();
+        var next = cur;
+        var guard = 0;
+        while (pool.length > 1 && next === cur && guard++ < 10) {
+          next = pool[Math.floor(Math.random() * pool.length)];
+        }
+        var name = FanFan.STAGES[FanFan.stageForMeals(lastMeta.total_meals || 0)].name;
+        $('#pet-bubble').text(next.replace('{n}', name));
+        // 小跳动画（先移除类、强制重排、再加回，才能重复触发）
+        $sprite.removeClass('pet-hop');
+        void $sprite[0].offsetWidth;
+        $sprite.addClass('pet-hop');
+      });
+
+      // ========== 动态窗景：按当前时间自动切换 天色 ==========
+      // 时段划分：5-10 清晨 | 10-16 正午 | 16-20 傍晚 | 其余(20-次日5) 黑夜
+      var SKY_SCENES = {
+        morning: { sky: '#C9E4F2', show: 'sun-morning', beam: '#FFFFFF', beamOp: 0.30, overlay: 0,    cloud: '#FFFFFF' },
+        noon:    { sky: '#A8D4EE', show: 'sun-noon',    beam: '#FFFFFF', beamOp: 0.38, overlay: 0,    cloud: '#FFFFFF' },
+        evening: { sky: '#EFC9A4', show: 'sun-evening', beam: '#FFC98F', beamOp: 0.32, overlay: 0.05, cloud: '#F6DEC8' },
+        night:   { sky: '#2C3A5E', show: 'sky-night',   beam: '#FFFFFF', beamOp: 0,    overlay: 0.15, cloud: '#4A5470' }
+      };
+      function dayPeriod(h) {
+        if (h >= 5 && h < 10) return 'morning';
+        if (h >= 10 && h < 16) return 'noon';
+        if (h >= 16 && h < 20) return 'evening';
+        return 'night';
+      }
+      // 应用某个时段的场景（切颜色都有 CSS 过渡，不会生硬跳变）
+      function applySkyScene(period) {
+        var cfg = SKY_SCENES[period] || SKY_SCENES.noon;
+        document.getElementById('sky-pane').style.fill = cfg.sky;
+        ['sun-morning', 'sun-noon', 'sun-evening', 'sky-night'].forEach(function (id) {
+          document.getElementById(id).style.display = (id === cfg.show) ? '' : 'none';
+        });
+        document.getElementById('sky-cloud').style.fill = cfg.cloud;
+        var beam = document.getElementById('light-beam');
+        beam.style.fill = cfg.beam;
+        beam.style.opacity = cfg.beamOp;
+        document.getElementById('scene-night').style.opacity = cfg.overlay;
+        document.getElementById('lamp-glow').style.display = (period === 'night') ? '' : 'none';
+      }
+      function applyDaylight() { applySkyScene(dayPeriod(new Date().getHours())); }
+      applyDaylight();
+      setInterval(applyDaylight, 60000); // 每分钟检查一次，页面开着跨时段也会自动渐变
+      // 预留调试口子：控制台里 setSkyScene('night') 可手动预览四种天色
+      window.setSkyScene = applySkyScene;
+
+      // ========== 喂饭：写云端数据库 + 动画反馈 ==========
+      function doFeed() {
+        if (feedBusy) return;
+        var food = $.trim($feedInput.val());
+        if (!food) return;
+        feedBusy = true;
+        refreshFeedBtn();
+
+        // 宠物开心跳跃
+        $sprite.removeClass('pet-float').addClass('pet-hop');
+        setTimeout(function () {
+          $sprite.removeClass('pet-hop').addClass('pet-float');
+        }, 720);
+
+        FanFan.feed(food).then(function (r) {
+          var petName = FanFan.STAGES[r.stage].name;
+          if (r.evolved) {
+            showToast('✨ 进化成「' + petName + '」啦！');
+          } else {
+            showToast('吧唧吧唧～' + petName + '吃了「' + food + '」，成长 +' + r.gain + '！');
+          }
+          renderPet(r.user.user_metadata || {});
+          $feedInput.val('');
+          setTimeout(closeSheet, 500);
+        }).catch(function (e) {
+          showToast('喂饭失败：' + e.message);
+        }).finally(function () {
+          feedBusy = false;
+          refreshFeedBtn();
+        });
+      }
+
+      $btnFeed.on('click', doFeed);
+      $feedInput.on('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); doFeed(); }
+      });
+    });
+  </script>
+</body>
+
+</html>

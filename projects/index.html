@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>小洛小洛 · 原型预览</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #faf4e8;
+        color: #4a4038;
+        font-family: "Noto Sans SC", system-ui, -apple-system, sans-serif;
+      }
+      .card {
+        text-align: center;
+        padding: 32px 40px;
+        background: #fffdf8;
+        border-radius: 20px;
+        box-shadow: 0 14px 30px rgba(122, 98, 70, 0.15);
+      }
+      a {
+        color: #6e9b77;
+        font-weight: 600;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <p>正在进入「小洛小洛」…</p>
+      <p>
+        <a href="login.html">去登录/注册</a>
+        &nbsp;·&nbsp;
+        <a href="home.html">直接进首页</a>
+      </p>
+    </div>
+
+    <!-- 先加载 Supabase SDK 和共享逻辑，再根据登录状态分流：
+         已登录 -> home.html；没登录 -> login.html -->
+    <script src="js/vendor/supabase.js"></script>
+    <script src="js/app.js?v=13"></script>
+    <script>
+      window.addEventListener('DOMContentLoaded', async function () {
+        // 数据库没配置好（js/app.js 第 1 部分没填），直接送去登录页看提示
+        if (!window.FanFan || !FanFan.isConfigured || !window.supabase) {
+          window.location.replace('login.html?notice=config');
+          return;
+        }
+        try {
+          const { data } = await FanFan.db.auth.getUser();
+          window.location.replace(data && data.user ? 'home.html' : 'login.html');
+        } catch (e) {
+          window.location.replace('login.html');
+        }
+      });
+    </script>
+  </body>
+</html>

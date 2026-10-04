@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>吃饭日记 · 小洛小洛</title>
+  <link rel="icon" href="image/avatar.jpg" />
+
+  <!-- 字体：标题用圆润展示体 ZCOOL KuaiLe，正文用 Noto Sans SC（CN 代理） -->
+  
+
+
+
+  
+
+  <!-- Supabase JS SDK（本地文件）+ 共享账号/数据库逻辑，必须先于页面脚本加载 -->
+
+
+
+  <link rel="stylesheet" href="styles/tailwind.css" />
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 400;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans min-h-screen">
+
+  <!-- @nav:start 导航组件（顶部导航，四个一级页面；子 Agent 按当前页设置激活态 aria-current="page"） -->
+  <header class="bg-surface/85 backdrop-blur sticky top-0 z-40 border-b border-outline-variant/30">
+    <div class="max-w-4xl mx-auto h-16 px-4 flex items-center justify-between">
+      <a href="home.html" class="flex items-center gap-2 shrink-0">
+        <!-- 手绘饭团小精灵 Logo -->
+        <span class="w-8 h-8 rounded-full border-2 border-on-surface/50 overflow-hidden block shrink-0"><img src="image/avatar.jpg" class="w-full h-full object-cover" alt="小洛头像" draggable="false"/></span>
+        <span class="hidden sm:inline font-display text-2xl text-primary tracking-wide">小洛小洛</span>
+      </a>
+      <nav class="hidden sm:flex items-center gap-1">
+        <a href="home.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="home" class="w-4 h-4"></i>首页
+        </a>
+        <a href="stats.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>成长
+        </a>
+        <a href="diary.html" aria-current="page" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-primary bg-primary-container/60 transition-colors">
+          <i data-lucide="book-open" class="w-4 h-4"></i>日记
+        </a>
+        <a href="chat.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="message-circle" class="w-4 h-4"></i>陪伴
+        </a>
+      </nav>
+      <!-- 当前登录用户的昵称 + 退出按钮（js/app.js 自动填充） -->
+      <div id="user-area" class="flex items-center gap-1 shrink-0"></div>
+    </div>
+  </header>
+  <!-- @nav:end 导航组件 -->
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-4 py-8">
+
+    <!-- 页头：标题 + 副标题 -->
+    <section id="diary-header" class="flex flex-wrap items-end justify-between gap-4">
+      <div class="flex flex-col gap-1">
+        <h1 class="font-display text-2xl text-on-surface tracking-wide">吃饭日记</h1>
+        <p class="text-sm text-on-surface-variant">每一顿好好吃饭，都陪着它长大</p>
+      </div>
+      <!-- 本周统计小条 -->
+      <div id="week-stats" class="flex items-center gap-4 bg-surface rounded-full shadow-card px-4 py-2">
+        <span class="flex items-center gap-1.5 text-sm text-on-surface-variant">
+          <i data-lucide="calendar-heart" class="w-4 h-4 text-primary"></i>
+          本周已记录
+          <strong id="week-meal-count" class="text-sm font-semibold text-primary">8</strong>
+          餐
+        </span>
+        <span class="w-px h-4 bg-outline-variant/60" aria-hidden="true"></span>
+        <span class="flex items-center gap-1.5 text-sm text-on-surface-variant">
+          <i data-lucide="flame" class="w-4 h-4 text-accent"></i>
+          连续好好吃饭
+          <strong id="streak-days" class="text-sm font-semibold text-accent">3</strong>
+          天
+        </span>
+      </div>
+    </section>
+
+    <!-- 时间线：左侧柔和竖线 -->
+    <section id="diary-timeline" class="relative mt-8 pl-8">
+      <!-- 竖向时间线（柔和米褐，ghost 线） -->
+      <span class="absolute left-[11px] top-2 bottom-2 w-0.5 bg-outline-variant/70 rounded-full" aria-hidden="true"></span>
+
+      <!-- 喂养记录：由页面底部脚本从云端读取后按天分组渲染到这里 -->
+      <div id="diary-list" class="flex flex-col gap-10"></div>
+
+      <!-- 还没有任何记录时的空状态 -->
+      <div id="diary-empty" class="relative -ml-8 mt-6" style="display:none">
+        <div class="ml-8 bg-surface rounded-lg shadow-card p-8 text-center">
+          <p class="font-display text-lg text-on-surface">还没有吃饭记录哦</p>
+          <p class="text-sm text-on-surface-variant mt-1.5">去喂第一顿饭吧，它等着你呢～</p>
+          <a href="home.html" class="mt-4 inline-flex items-center gap-1.5 bg-primary text-on-primary px-5 py-2.5 rounded-full text-sm font-medium hover:opacity-90 transition-opacity">
+            <i data-lucide="utensils" class="w-4 h-4"></i>去喂饭
+          </a>
+        </div>
+      </div>
+
+      <!-- 时间线底部温柔收尾 -->
+      <div class="relative -ml-8 mt-8 flex items-center gap-3">
+        <span class="z-10 w-6 h-6 rounded-full bg-surface-container flex items-center justify-center shrink-0">
+          <i data-lucide="heart" class="w-3.5 h-3.5 text-sakura"></i>
+        </span>
+        <p class="text-sm text-on-surface-variant">更早的故事，从你喂下第一口饭开始慢慢书写……</p>
+      </div>
+    </section>
+
+  </main>
+  <!-- @main-content:end -->
+
+    <script src="js/vendor/jquery-3.7.1.min.js"></script>
+  <script src="js/vendor/lucide-1.11.0.min.js"></script>
+  <script src="js/vendor/supabase.js"></script>
+  <script src="js/app.js?v=13"></script>
+<script>
+    $(async function () {
+      // ========== 门卫：没登录会被送去 login.html ==========
+      const user = await FanFan.requireLogin();
+      if (!user) return;
+      FanFan.injectNavUser(user);
+
+      const $list = $('#diary-list');
+
+      // 每一餐的图标和配色（按餐次区分，与原型视觉保持一致）
+      const MEAL_STYLE = {
+        '早餐': { icon: 'coffee',    circle: 'bg-primary-container',      iconColor: 'text-primary',              badge: 'bg-primary-container/70 text-primary' },
+        '午餐': { icon: 'utensils',  circle: 'bg-accent-container',       iconColor: 'text-accent',               badge: 'bg-accent-container/70 text-accent' },
+        '晚餐': { icon: 'moon',      circle: 'bg-sakura/30',              iconColor: 'text-[#C9786A]',            badge: 'bg-sakura/30 text-[#C9786A]' },
+        '夜宵': { icon: 'moon-star', circle: 'bg-surface-container-high', iconColor: 'text-on-surface-variant',   badge: 'bg-surface-container-high text-on-surface-variant' }
+      };
+
+      const WEEK = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
+      // 日期分组的标题（今天/昨天/具体日期）
+      function dayLabel(d) {
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const that = new Date(d); that.setHours(0, 0, 0, 0);
+        const diffDays = Math.round((today - that) / 86400000);
+        const md = (d.getMonth() + 1) + '月' + d.getDate() + '日';
+        if (diffDays === 0) return { title: '今天', sub: md + ' · ' + WEEK[d.getDay()], icon: 'sun' };
+        if (diffDays === 1) return { title: '昨天', sub: md + ' · ' + WEEK[d.getDay()], icon: 'cloud-sun' };
+        return { title: md, sub: '· ' + WEEK[d.getDay()], icon: 'moon-star' };
+      }
+
+      function pad2(n) { return String(n).padStart(2, '0'); }
+
+      // 一条喂养记录的卡片
+      function mealCardHtml(m) {
+        const st = MEAL_STYLE[m.meal_type] || MEAL_STYLE['夜宵'];
+        const d = new Date(m.created_at);
+        // 成长值偏低（<10）时用灰色徽章：轻轻记录，不评判
+        const growthCls = m.growth_gain < 10
+          ? 'bg-surface-container-high text-on-surface-variant'
+          : 'bg-primary-container/70 text-primary';
+        return (
+          '<article class="meal-card group bg-surface rounded-lg shadow-card p-4 flex items-center gap-4 hover:shadow-float transition-shadow" data-id="' + m.id + '">' +
+            '<span class="w-10 h-10 rounded-full ' + st.circle + ' flex items-center justify-center shrink-0">' +
+              '<i data-lucide="' + st.icon + '" class="w-5 h-5 ' + st.iconColor + '"></i>' +
+            '</span>' +
+            '<div class="flex-1 min-w-0 flex flex-col gap-0.5">' +
+              '<div class="flex items-center gap-2">' +
+                '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ' + st.badge + '">' + m.meal_type + '</span>' +
+                '<span class="text-xs text-on-surface-variant">' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + '</span>' +
+              '</div>' +
+              '<h3 class="text-base font-semibold text-on-surface truncate"></h3>' +
+            '</div>' +
+            '<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ' + growthCls + '">' +
+              '<i data-lucide="sprout" class="w-3.5 h-3.5"></i>+' + m.growth_gain + ' 成长值' +
+            '</span>' +
+          '</article>'
+        );
+      }
+
+      // 进化里程碑卡片（吃满 5/20/50 餐那天出现）
+      function milestoneHtml(stageName, meals, when) {
+        return (
+          '<article class="relative -ml-8 mb-10 milestone-card">' +
+            '<span class="absolute left-[11px] -translate-x-1/2 top-6 z-10 w-6 h-6 rounded-full bg-accent flex items-center justify-center shadow-float shrink-0">' +
+              '<i data-lucide="sparkles" class="w-3.5 h-3.5 text-white"></i>' +
+            '</span>' +
+            '<div class="ml-8 bg-accent-container rounded-lg shadow-card p-4 flex items-start gap-3">' +
+              '<span class="w-10 h-10 rounded-full bg-surface/70 flex items-center justify-center shrink-0">' +
+                '<i data-lucide="sparkle" class="w-5 h-5 text-accent"></i>' +
+              '</span>' +
+              '<div class="flex-1 flex flex-col gap-1">' +
+                '<h3 class="font-display text-lg text-accent tracking-wide flex items-center gap-1.5">进化啦！<i data-lucide="sparkles" class="w-4 h-4 text-accent"></i></h3>' +
+                '<p class="text-sm text-on-surface">它进化成了 <span class="font-semibold text-accent">『' + stageName + '』</span></p>' +
+                '<p class="text-xs text-on-surface-variant">累计好好吃饭 ' + meals + ' 餐，解锁了新形态</p>' +
+              '</div>' +
+              '<span class="text-xs text-on-surface-variant shrink-0 pt-1">' + when + '</span>' +
+            '</div>' +
+          '</article>'
+        );
+      }
+
+      // ========== 拉取云端记录并渲染 ==========
+      try {
+        const meals = await FanFan.getMyMeals(500);
+        $('#week-meal-count').text(FanFan.weekMealCount(meals));
+        $('#streak-days').text(FanFan.streakDays(meals));
+
+        if (!meals.length) {
+          $('#diary-empty').show();
+          lucide.createIcons();
+          return;
+        }
+
+        // 按吃的顺序给每餐编号，吃满阶段阈值的那餐就是"进化时刻"
+        const asc = meals.slice().sort(function (a, b) { return new Date(a.created_at) - new Date(b.created_at); });
+        const milestoneByDay = {}; // 日期 -> [ {stageName, meals} ]
+        asc.forEach(function (m, i) {
+          const cum = i + 1;
+          const hit = FanFan.STAGES.find(function (s) { return s.needMeals === cum; });
+          if (hit) {
+            const key = new Date(m.created_at).toDateString();
+            (milestoneByDay[key] = milestoneByDay[key] || []).push({ stageName: hit.name, meals: cum });
+          }
+        });
+
+        // 按天分组（同一天内新的在前，与原型一致）
+        const groups = {};
+        meals.forEach(function (m) {
+          const key = new Date(m.created_at).toDateString();
+          (groups[key] = groups[key] || []).push(m);
+        });
+        const dayKeys = Object.keys(groups).sort(function (a, b) { return new Date(b) - new Date(a); });
+
+        dayKeys.forEach(function (key) {
+          const dayMeals = groups[key].sort(function (a, b) { return new Date(b.created_at) - new Date(a.created_at); });
+          const label = dayLabel(new Date(key));
+          let html = '<div class="timeline-group">';
+          html += '<div class="relative flex items-center gap-3 -ml-8 mb-4">' +
+                    '<span class="z-10 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-card shrink-0">' +
+                      '<i data-lucide="' + label.icon + '" class="w-3.5 h-3.5 text-on-primary"></i>' +
+                    '</span>' +
+                    '<h2 class="font-display text-lg text-on-surface tracking-wide">' + label.title +
+                      ' <span class="text-on-surface-variant text-sm font-sans font-normal">' + label.sub + '</span></h2>' +
+                  '</div>';
+          html += '<div class="flex flex-col gap-3 mb-6">';
+          dayMeals.forEach(function (m) { html += mealCardHtml(m); });
+          html += '</div>';
+          // 这一天跨过了进化阈值 -> 追加里程碑卡
+          (milestoneByDay[key] || []).forEach(function (ms) {
+            const when = new Date(key);
+            html += milestoneHtml(ms.stageName, ms.meals, (when.getMonth() + 1) + '月' + when.getDate() + '日');
+          });
+          html += '</div>';
+          const $group = $(html);
+          // 食物名是用户输入的内容，用 text() 安全写入，防止 HTML 注入
+          $group.find('.meal-card h3').each(function (i) {
+            $(this).text(dayMeals[i].food_name);
+          });
+          $list.append($group);
+        });
+
+        $('#diary-timeline').on('click', '.meal-card', function () {
+          console.log('查看用餐记录详情:', $(this).data('id'));
+        });
+      } catch (e) {
+        $list.append('<p class="text-sm text-error -ml-8"></p>');
+        $list.find('p').last().text('记录加载失败：' + (e.message || e));
+      }
+
+      lucide.createIcons();
+    });
+  </script>
+</body>
+
+</html>

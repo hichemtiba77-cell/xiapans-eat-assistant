@@ -1,0 +1,35 @@
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.local
+
+# Android signing material
+android-certificate/
+*.jks
+*.keystore
+
+# Build and release artifacts
+android-apk/
+*.apk
+*.aab
+*.zip
+
+# HBuilderX build output
+小洛小洛/unpackage/
+
+# Python and local tools
+__pycache__/
+*.pyc
+.venv/
+work/
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.log
+
+# Local deployment state
+.wrangler/

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- 字体：标题用圆润展示体 ZCOOL KuaiLe，正文用 Noto Sans SC（CN 代理） -->
+  <link href="https://lf-code-agent.coze.cn/obj/x-ai-cn/fonts/google/google-all-fonts.css" rel="stylesheet" />
+
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/jquery/jquery-3.7.1.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/lucide/lucide-1.11.0.min.js"></script>
+  <script src="https://lf-code-agent.coze.cn/obj/x-ai-cn/cdn/tailwindcss/tailwindcss-browser-4.2.4.min.js"></script>
+
+  <style type="text/tailwindcss">
+    @theme {
+      /* === 品牌色：柔和抹茶绿 === */
+      --color-primary:              #6E9B77;
+      --color-primary-container:    #DCE9DA;
+      --color-on-primary:           #FFFFFF;
+      /* 点缀色：暖琥珀（蜜豆/鲑鱼）与 樱粉（装饰） */
+      --color-accent:               #E5964E;
+      --color-accent-container:     #F8E6D0;
+      --color-sakura:               #F2BFB8;
+      /* === 背景 / 表面：暖米纸色系（surface 保持暖中性） === */
+      --color-background:                 #FAF4E8;
+      --color-surface-container-lowest:   #FFFFFF;
+      --color-surface:                    #FFFDF8;
+      --color-surface-container:          #F4ECDC;
+      --color-surface-container-high:     #EFE4D1;
+      --color-surface-container-highest:  #E8DAC3;
+      /* === 文字：暖棕（不用纯黑，更柔和） === */
+      --color-on-surface:           #4A4038;
+      --color-on-surface-variant:   #8C8070;
+      /* === 功能色 === */
+      --color-success:  #7BAE7F;
+      --color-error:    #DE7668;
+      --color-warning:  #E5A35B;
+      /* === 边框：暖米 ghost border === */
+      --color-outline:          #D9CDB6;
+      --color-outline-variant:  #E8DECB;
+      /* === 圆角：圆润可爱 === */
+      --radius-sm:   0.5rem;
+      --radius-md:   0.75rem;
+      --radius-lg:   1rem;
+      --radius-xl:   1.375rem;
+      --radius-2xl:  1.75rem;
+      --radius-full: 9999px;
+      /* === 阴影：暖调柔影 === */
+      --shadow-card:   0 3px 12px rgba(122, 98, 70, 0.10);
+      --shadow-float:  0 14px 30px rgba(122, 98, 70, 0.15);
+      --shadow-dialog: 0 26px 52px rgba(122, 98, 70, 0.20);
+      /* === 字体 === */
+      --font-sans:     "Noto Sans SC", system-ui, -apple-system, sans-serif;
+      --font-display:  "ZCOOL KuaiLe", "Noto Sans SC", system-ui, sans-serif;
+    }
+  </style>
+
+  <!-- 图片兜底 -->
+  <script>
+    document.addEventListener('error', function (e) {
+      const img = e.target;
+      if (img.tagName !== 'IMG' || img.dataset.fallback) return;
+      img.dataset.fallback = '1';
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const cat = img.getAttribute('data-category') || '其他';
+      const alt = img.getAttribute('alt') || '';
+      const label = esc(alt.length > 8 ? alt.slice(0, 8) + '…' : alt);
+      const icons = { '人物': '👤', '自然风景': '🏞', '动物': '🐾', '建筑城市': '🏙', '运动体育': '⚽', '交通工具': '🚗', '食物': '🍽', '服饰时尚': '👗', '商业科技': '💼', '游戏娱乐': '🎮', '艺术': '🎨', '其他': '🖼' };
+      const icon = icons[cat] || '🖼';
+      const w = img.width || 400, h = img.height || 300;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="%23f3f4f6"/><text x="50%" y="45%" text-anchor="middle" font-size="${Math.min(w, h) * 0.18}" dominant-baseline="central">${icon}</text><text x="50%" y="68%" text-anchor="middle" font-size="${Math.min(w, h) * 0.07}" fill="%239ca3af" font-family="system-ui,sans-serif" dominant-baseline="central">${label}</text></svg>`;
+      img.src = 'data:image/svg+xml,' + svg;
+    }, true);
+  </script>
+</head>
+
+<body class="bg-background text-on-surface font-sans min-h-screen">
+
+  <!-- @nav:start 导航组件（顶部导航，四个一级页面；子 Agent 按当前页设置激活态 aria-current="page"） -->
+  <header class="bg-surface/85 backdrop-blur sticky top-0 z-40 border-b border-outline-variant/30">
+    <div class="max-w-4xl mx-auto h-16 px-4 flex items-center justify-between">
+      <a href="home.html" class="flex items-center gap-2 shrink-0">
+        <!-- 手绘饭团小精灵 Logo -->
+        <svg class="w-8 h-8" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M16 4c1.2 0 2.3.6 2.9 1.6l9 15.2c1 1.7-.2 3.8-2.2 3.8H6.3c-2 0-3.2-2.1-2.2-3.8l9-15.2A3.4 3.4 0 0 1 16 4Z" fill="#FFFFFF" stroke="#6E9B77" stroke-width="1.6" stroke-linejoin="round"/>
+          <rect x="11.5" y="19.5" width="9" height="6.3" rx="1.6" fill="#47644F"/>
+          <circle cx="12.9" cy="14.6" r="1.15" fill="#4A4038"/>
+          <circle cx="19.1" cy="14.6" r="1.15" fill="#4A4038"/>
+          <path d="M14.6 17.2q1.4 1.1 2.8 0" stroke="#C9786A" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span class="font-display text-2xl text-primary tracking-wide">饭团小窝</span>
+      </a>
+      <nav class="flex items-center gap-1">
+        <a href="home.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="home" class="w-4 h-4"></i>首页
+        </a>
+        <a href="stats.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>成长
+        </a>
+        <a href="diary.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="book-open" class="w-4 h-4"></i>日记
+        </a>
+        <a href="chat.html" class="flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-on-surface-variant hover:text-primary hover:bg-primary-container/50 transition-colors">
+          <i data-lucide="message-circle" class="w-4 h-4"></i>陪伴
+        </a>
+      </nav>
+    </div>
+  </header>
+  <!-- @nav:end 导航组件 -->
+
+  <!-- @main-content:start -->
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    <!-- 子 Agent 在 @main-content:start 与 @main-content:end 之间填充页面业务内容 -->
+  </main>
+  <!-- @main-content:end -->
+
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>
